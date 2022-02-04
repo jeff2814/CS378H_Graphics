@@ -17,6 +17,10 @@
 #include <glm/gtx/io.hpp>
 #include <string.h> // for memset
 
+// Used for glm::to_string
+#include "glm/ext.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <iostream>
 #include <fstream>
 
@@ -93,6 +97,7 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 
 		const Material& m = i.getMaterial();
 		colorC = m.shade(scene.get(), r, i);
+		cout << glm::to_string(colorC) << endl;
 	} else {
 		// No intersection.  This ray travels to infinity, so we color
 		// it according to the background color, which in this (simple) case
@@ -225,6 +230,13 @@ void RayTracer::traceImage(int w, int h)
 	//
 	//       An asynchronous traceImage lets the GUI update your results
 	//       while rendering.
+
+	// Single threaded rn
+	for(int x = 0; x < w; x++){
+		for(int y = 0; y < h; y++) {
+			tracePixel(x, y);
+		}
+	}
 }
 
 int RayTracer::aaImage()
