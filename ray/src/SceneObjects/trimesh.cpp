@@ -5,6 +5,15 @@
 #include <algorithm>
 #include <cmath>
 #include "../ui/TraceUI.h"
+#include <iostream>
+
+
+// Used for glm::to_string
+#include "glm/ext.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+
+#include <typeinfo>
+
 extern TraceUI* traceUI;
 
 using namespace std;
@@ -96,8 +105,45 @@ bool TrimeshFace::intersectLocal(ray& r, isect& i) const
 	// YOUR CODE HERE
 	//
 	// FIXME: Add ray-trimesh intersection
-
-	return false;
+	// FIXME: segfault when running easy1
+	if(degen) {
+		return false;
+	}
+	auto a = parent->vertices[ids[0]];
+	auto b = parent->vertices[ids[1]];
+	auto c = parent->vertices[ids[2]];
+	auto o = r.getPosition();
+	auto v = r.getDirection();
+	// cout << glm::to_string(normal) << endl;
+	double denom = glm::dot(v, normal);
+	// arbitrary constant to make sure no blow up
+	if(denom < 0.0001){
+		return false;
+	}
+	auto t = glm::dot(a - o, normal)/denom;
+	if(t < 0){
+		return false;
+	}
+	auto p = r.at(t);
+	// cout << typeid(glm::dot(glm::cross(b - a,p - a), normal)).name() << " " << endl;
+	if(glm::dot(glm::cross(b - a,p - a), normal) < 0){
+		return false;
+	}
+	auto baryu = glm::dot(glm::cross(c - b,p - b), normal)/denom;
+	auto baryv = glm::dot(glm::cross(a - c, p - c), normal)/denom;
+	if(baryu < 0){
+		return false;
+	}
+	if(baryv < 0){
+		return false;
+	}
+	// cout << baryu << " " << baryv << endl;
+	// Does intersect triangle
+	i.setT(t);
+	// Barycentric coordinates - basically, how can we represent P as an average of vertices?
+	// FIXME: Might need to switch around u, v
+	i.setBary(baryu, baryv, 1 - baryu - baryv);
+	return true;
 }
 
 // Once all the verts and faces are loaded, per vertex normals can be
