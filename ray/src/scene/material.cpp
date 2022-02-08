@@ -2,10 +2,13 @@
 #include "../ui/TraceUI.h"
 #include "light.h"
 #include "ray.h"
+#include "math.h"
+#include "glm/ext.hpp"
 extern TraceUI* traceUI;
 
 #include <glm/gtx/io.hpp>
 #include <iostream>
+#include <algorithm>
 #include "../fileio/images.h"
 
 using namespace std;
@@ -17,6 +20,10 @@ Material::~Material()
 
 // Apply the phong model to this point on the surface of the object, returning
 // the color of that point.
+double getMax(double a, double b) {
+	return a > b ? a : b;
+}
+
 glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 {
 	// YOUR CODE HERE
@@ -45,7 +52,17 @@ glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 	// 		.
 	// 		.
 	// }
-	return kd(i);
+	// phong shading I = ka * Iscene + [kd * max(l * n, 0) + ks * max(v * r, 0)^a] * Iin
+	// Might need to replace Iin in the future
+	auto Iin = glm::dvec3(1,1,1);
+	auto maxln = getMax(glm::dot( glm::normalize(-1.0 * r.getDirection()), i.getN()), 0);
+	auto camera = scene->getCamera(); // v in the equation
+	auto wref  = glm::normalize(r.getDirection()) - (2 * glm::dot(glm::normalize(r.getDirection()), i.getN()) * i.getN()); // r in the equation
+	auto maxvra = pow(getMax( -1.0 * glm::dot(glm::normalize(r.getDirection()), glm::normalize(wref)), 0), shininess(i));
+	auto rhs = ((kd(i) * maxln) + (ks(i) * maxvra))* Iin;
+	auto lhs = glm::abs(ka(i) * scene->ambient());
+	// return glm::abs(rhs);
+	return lhs + rhs;
 }
 
 TextureMap::TextureMap(string filename)
