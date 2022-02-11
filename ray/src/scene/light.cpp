@@ -19,7 +19,12 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray& r, const glm::dvec3& p
 {
 	// YOUR CODE HERE:
 	// You should implement shadow-handling code here.
-	return glm::dvec3(1.0, 1.0, 1.0);
+	auto res = glm::dvec3(1.0, 1.0, 1.0);
+	isect i;
+	if (scene->intersect(const_cast<ray&>(r), i)) {
+		res = glm::dvec3(0, 0, 0);
+	}
+	return res;
 }
 
 glm::dvec3 DirectionalLight::getColor() const
@@ -40,7 +45,9 @@ double PointLight::distanceAttenuation(const glm::dvec3& P) const
 	// You'll need to modify this method to attenuate the intensity 
 	// of the light based on the distance between the source and the 
 	// point P.  For now, we assume no attenuation and just return 1.0
-	return 1.0;
+	auto d = glm::distance(P, position);
+	auto quad = 1/( constantTerm + (linearTerm * d) + (quadraticTerm * pow(d, 2)));
+	return 1 > quad ? quad : 1;
 }
 
 glm::dvec3 PointLight::getColor() const

@@ -52,17 +52,31 @@ glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 	// 		.
 	// 		.
 	// }
-	// phong shading I = ka * Iscene + [kd * max(l * n, 0) + ks * max(v * r, 0)^a] * Iin
-	// Might need to replace Iin in the future
-	auto Iin = glm::dvec3(1,1,1);
-	auto maxln = getMax(glm::dot( glm::normalize(-1.0 * r.getDirection()), i.getN()), 0);
-	auto camera = scene->getCamera(); // v in the equation
-	auto wref  = glm::normalize(r.getDirection()) - (2 * glm::dot(glm::normalize(r.getDirection()), i.getN()) * i.getN()); // r in the equation
-	auto maxvra = pow(getMax( -1.0 * glm::dot(glm::normalize(r.getDirection()), glm::normalize(wref)), 0), shininess(i));
-	auto rhs = ((kd(i) * maxln) + (ks(i) * maxvra))* Iin;
-	auto lhs = glm::abs(ka(i) * scene->ambient());
-	// return glm::abs(rhs);
-	return lhs + rhs;
+	auto Iin = glm::dvec3(0,0,0);
+	auto errorTerm = RAY_EPSILON;
+	cout << "normal " << i.getN() << endl;
+	cout << "r.direction " << r.getDirection() << endl;
+	cout << glm::dot(i.getN(), r.getDirection()) << endl;
+	// if (glm::dot(i.getN(), r.getDirection()) < 0) {
+	// 	errorTerm *= -1.0;
+	// }
+	auto p(r.at(i.getT()));
+	auto result = glm::dvec3(0, 0, 0);
+	for ( const auto& pLight : scene->getAllLights() ){
+		auto nextRay(ray(p, -1.0 * pLight->getDirection(p), glm::dvec3(1, 1, 1), ray::RayType::SHADOW));
+		Iin += pLight->shadowAttenuation(nextRay, p) * pLight->getColor() * pLight->distanceAttenuation(p);
+		// phong shading I = ka * Iscene + [kd * max(l * n, 0) + ks * max(v * r, 0)^a] * Iin
+		auto l = -1.0 * pLight->getDirection(p);
+		auto v = glm::normalize( -1.0 * r.getDirection());
+		auto wref = glm::normalize(glm::normalize(l) - (2 * glm::dot(glm::normalize(l), i.getN()) * i.getN()));
+		auto maxln = getMax(glm::dot(-1.0 * l, i.getN()), 0);
+		auto diffuse = maxln * kd(i) * Iin;
+		auto maxvr = getMax(glm::dot(v, wref), 0);
+		auto specular = pow(maxvr, shininess(i)) * Iin;
+		auto ambient = ka(i) * scene->ambient();
+		result += diffuse + specular + ambient;
+	}
+	return result;
 }
 
 TextureMap::TextureMap(string filename)
