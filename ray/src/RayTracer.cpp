@@ -108,7 +108,6 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 
 		if(m.Trans())
 		{
-			cout << "translucent" << endl;
 			bool inside = glm::dot(r.getDirection(), i.getN()) > 0;
 			double n_1 = (inside) ? m.index(i) : 1.0001;
 			double n_2 = (inside) ? 1.0001 : m.index(i);
