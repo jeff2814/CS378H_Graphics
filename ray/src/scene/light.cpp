@@ -22,7 +22,19 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray& r, const glm::dvec3& p
 	auto res = glm::dvec3(1.0, 1.0, 1.0);
 	isect i;
 	if (scene->intersect(const_cast<ray&>(r), i)) {
-		res = glm::dvec3(0, 0, 0);
+		if (!i.getMaterial().Trans()){
+			return glm::dvec3(0, 0, 0);
+		}
+		auto newPoint = r.at(i.getT() + RAY_EPSILON);
+		auto d = r.getDirection();
+		auto kt = i.getMaterial().kt(i);
+		auto second(ray(newPoint, d, r.getAtten(), ray::RayType::SHADOW));
+		isect i2;
+		if (scene->intersect(second, i2)) {
+			auto distance = i.getT();
+			glm::dvec3 mult(std::pow(kt[0], distance), std::pow(kt[1], distance), std::pow(kt[2], distance));
+			res *= mult;
+		}
 	}
 	return res;
 }

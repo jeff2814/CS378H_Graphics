@@ -48,7 +48,7 @@ glm::dvec3 RayTracer::trace(double x, double y)
 	ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1), ray::VISIBILITY);
 	scene->getCamera().rayThrough(x,y,r);
 	double dummy;
-	glm::dvec3 ret = traceRay(r, glm::dvec3(1.0,1.0,1.0), traceUI->getDepth(), dummy);
+	glm::dvec3 ret = traceRay(r, glm::dvec3(1.0,1.0,1.0), 0, dummy);
 	ret = glm::clamp(ret, 0.0, 1.0);
 	return ret;
 }
@@ -73,12 +73,21 @@ glm::dvec3 RayTracer::tracePixel(int i, int j)
 
 #define VERBOSE 0
 
+glm::dvec3 refl_helper(ray& r, const glm::dvec3& n)
+{
+	return r.getDirection() - 2*glm::dot(r.getDirection(), n) * n;
+}
+
 // Do recursive ray tracing!  You'll want to insert a lot of code here
 // (or places called from here) to handle reflection, refraction, etc etc.
 glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, double& t )
 {
 	isect i;
-	glm::dvec3 colorC;
+	glm::dvec3 colorC = glm::dvec3(0, 0, 0);
+
+	if(depth > traceUI->getDepth()) 
+		return colorC;
+
 #if VERBOSE
 	std::cerr << "== current depth: " << depth << std::endl;
 #endif
@@ -94,10 +103,55 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 		// Instead of just returning the result of shade(), add some
 		// more steps: add in the contributions from reflected and refracted
 		// rays.
-
+		
 		const Material& m = i.getMaterial();
-		colorC = m.shade(scene.get(), r, i);
+
+		if(m.Trans())
+		{
+			cout << "translucent" << endl;
+			bool inside = glm::dot(r.getDirection(), i.getN()) > 0;
+			double n_1 = (inside) ? m.index(i) : 1.0001;
+			double n_2 = (inside) ? 1.0001 : m.index(i);
+
+			double out = (inside) ? -1.0: 1.0;
+			double cos_1 = glm::dot(glm::normalize(r.getDirection()), glm::normalize(out*i.getN()));
+			double sin_2 = n_1/n_2 * sqrt(1-cos_1*cos_1);
+
+			glm::dvec3 dir = glm::dvec3(1, 1, 1);
+			if(sin_2 <= 1 && sin_2 >= -1) //domain of sine
+			{
+				//refraction
+				double formula = 1 - std::pow(n_1/n_2, 2.0) * (1-cos_1*cos_1); //http://www.starkeffects.com/snells-law-vector.shtml
+				dir = n_1/n_2 * r.getDirection() + (n_1/n_2 *cos_1 - sqrt(formula)) * i.getN();
+			}
+			else
+			{
+				//total internal reflection
+				dir = refl_helper(r, -1.0*i.getN());
+			}
+
+			if(inside)
+			{
+				//transmissive material property 
+				//thresh *= pow(m.kt(i), i.getT());
+			}
+			auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
+			colorC += thresh * traceRay(nextRay, thresh, depth, t);
+		}
+		// else if (m.Refl())
+		// {
+		// 	//thresh = thresh * m.kr(i)
+		// 	auto dir = refl_helper(r, i.getN());
+		// 	colorC += thresh * m.shade(scene.get(), r, i);
+		// 	// auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), ray::RayType::REFLECTION));
+		// 	// traceRay(nextRay, thresh, traceUI->getDepth(), t);
+		// }
+		else
+		{	
+			colorC += thresh * m.shade(scene.get(), r, i);
+		}
 		cout << glm::to_string(colorC) << endl;
+		
 	} else {
 		// No intersection.  This ray travels to infinity, so we color
 		// it according to the background color, which in this (simple) case
