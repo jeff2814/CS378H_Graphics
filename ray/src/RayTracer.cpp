@@ -30,7 +30,7 @@ extern TraceUI* traceUI;
 // Use this variable to decide if you want to print out
 // debugging messages.  Gets set in the "trace single ray" mode
 // in TraceGLWindow, for example.
-bool debugMode = false;
+bool debugMode = true;
 
 // Trace a top-level ray through pixel(i,j), i.e. normalized window coordinates (x,y),
 // through the projection plane, and out into the scene.  All we do is
@@ -105,6 +105,7 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 		// rays.
 		
 		const Material& m = i.getMaterial();
+		colorC += m.shade(scene.get(), r, i);
 
 		if(m.Trans())
 		{
@@ -115,13 +116,26 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 			double out = (inside) ? -1.0: 1.0;
 			double cos_1 = glm::dot(glm::normalize(r.getDirection()), glm::normalize(out*i.getN()));
 			double sin_2 = n_1/n_2 * sqrt(1-cos_1*cos_1);
-
+			double dist = i.getT() - t;
 			glm::dvec3 dir = glm::dvec3(1, 1, 1);
 			if(sin_2 <= 1 && sin_2 >= -1) //domain of sine
 			{
 				//refraction
 				double formula = 1 - std::pow(n_1/n_2, 2.0) * (1-cos_1*cos_1); //http://www.starkeffects.com/snells-law-vector.shtml
 				dir = n_1/n_2 * r.getDirection() + (n_1/n_2 *cos_1 - sqrt(formula)) * i.getN();
+				auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
+				auto temp = traceRay(nextRay, thresh, depth + 1, dist);
+				if(inside) {
+					for(int j = 0; j < 3; j++){
+						temp[j] *= pow(m.kt(i)[j], dist);
+					}
+				}
+				if(debugMode) {
+					cout << "\nREFRACTION CONTRIBUTIONS" << endl;
+					cout << "depth " << depth << endl;
+					cout << "contr " << temp << endl;
+				}
+				colorC += temp;
 			}
 			else
 			{
@@ -129,13 +143,13 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 				dir = refl_helper(r, -1.0*i.getN());
 			}
 
-			if(inside)
-			{
-				//transmissive material property 
-				//thresh *= pow(m.kt(i), i.getT());
-			}
-			auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
-			colorC += thresh * traceRay(nextRay, thresh, depth, t);
+			// if(inside)
+			// {
+			// 	//transmissive material property 
+			// 	//thresh *= pow(m.kt(i), i.getT());
+			// }
+			
+			// colorC += thresh * traceRay(nextRay, thresh, depth + 1, t) * m.shade(scene.get(), r, i);
 		}
 		// else if (m.Refl())
 		// {
@@ -145,12 +159,9 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 		// 	// auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), ray::RayType::REFLECTION));
 		// 	// traceRay(nextRay, thresh, traceUI->getDepth(), t);
 		// }
-		else
-		{	
-			colorC += thresh * m.shade(scene.get(), r, i);
+		if(debugMode){
+			cout << "color: " << colorC << endl;
 		}
-		cout << glm::to_string(colorC) << endl;
-		
 	} else {
 		// No intersection.  This ray travels to infinity, so we color
 		// it according to the background color, which in this (simple) case

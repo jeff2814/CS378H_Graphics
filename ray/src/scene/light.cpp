@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/io.hpp>
 
+extern bool debugMode;
 
 using namespace std;
 
@@ -22,6 +23,11 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray& r, const glm::dvec3& p
 	auto res = glm::dvec3(1.0, 1.0, 1.0);
 	isect i;
 	if (scene->intersect(const_cast<ray&>(r), i)) {
+		
+		if(debugMode) {
+			cout << "CALCULATING SHADOW ATTEN" << endl;
+			cout << "isTrans: " << i.getMaterial().Trans() << endl;
+		}
 		if (!i.getMaterial().Trans()){
 			return glm::dvec3(0, 0, 0);
 		}
@@ -34,6 +40,9 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray& r, const glm::dvec3& p
 			auto distance = i.getT();
 			glm::dvec3 mult(std::pow(kt[0], distance), std::pow(kt[1], distance), std::pow(kt[2], distance));
 			res *= mult;
+		}
+		if(debugMode) {
+			cout << "i.N, i.T: " << i.getN() << i.getT() << endl;
 		}
 	}
 	return res;

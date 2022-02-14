@@ -52,28 +52,50 @@ glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 	// 		.
 	// 		.
 	// }
-	auto Iin = glm::dvec3(0,0,0);
 	auto errorTerm = RAY_EPSILON;
-	cout << "normal " << i.getN() << endl;
-	cout << "r.direction " << r.getDirection() << endl;
-	cout << glm::dot(i.getN(), r.getDirection()) << endl;
+	// cout << "normal " << i.getN() << endl;
+	// cout << "r.direction " << r.getDirection() << endl;
+	// cout << glm::dot(i.getN(), r.getDirection()) << endl;
 	// if (glm::dot(i.getN(), r.getDirection()) < 0) {
 	// 	errorTerm *= -1.0;
 	// }
 	auto p(r.at(i.getT()));
 	auto result = glm::dvec3(0, 0, 0);
+	int numLight = 0;
 	for ( const auto& pLight : scene->getAllLights() ){
+		auto Iin = glm::dvec3(0,0,0);
 		auto nextRay(ray(p, -1.0 * pLight->getDirection(p), glm::dvec3(1, 1, 1), ray::RayType::SHADOW));
-		Iin += pLight->shadowAttenuation(nextRay, p) * pLight->getColor() * pLight->distanceAttenuation(p);
+		auto shadow = pLight->shadowAttenuation(nextRay, p);
+		auto distAtten = pLight->distanceAttenuation(p);
+		Iin += shadow * pLight->getColor() * distAtten;
 		// phong shading I = ka * Iscene + [kd * max(l * n, 0) + ks * max(v * r, 0)^a] * Iin
 		auto l = -1.0 * pLight->getDirection(p);
 		auto v = glm::normalize( -1.0 * r.getDirection());
 		auto wref = glm::normalize(glm::normalize(l) - (2 * glm::dot(glm::normalize(l), i.getN()) * i.getN()));
 		auto maxln = getMax(glm::dot(-1.0 * l, i.getN()), 0);
+		if (i.getMaterial().Trans()) {
+			maxln = abs(glm::dot(l, i.getN()));
+		}
 		auto diffuse = maxln * kd(i) * Iin;
 		auto maxvr = getMax(glm::dot(v, wref), 0);
 		auto specular = pow(maxvr, shininess(i)) * Iin;
+		if(shininess(i) == 0){
+			specular = glm::dvec3(0, 0, 0);
+		}
 		auto ambient = ka(i) * scene->ambient();
+		if(debugMode) {
+			cout << "--------------" << endl;
+			cout << "r.pos, r.dir, r.atten:" << r.getPosition() << " " << r.getDirection() << " " << r.getAtten() << endl;
+			cout << "i.getN, i.getT: " << i.getN() << " " << i.getT() << endl;
+			cout << "m.kd, m.ka, m.ks: " << kd(i) << " " << ka(i) << " " << ks(i) << endl;
+			cout << "ShadAtten: " << shadow << endl;
+			cout << "distAtten: " << distAtten << endl;
+			cout << "mxln: " << maxln << endl;
+			cout << "Iin : " << Iin << endl;
+			cout << "diff: " << diffuse << endl;
+			cout << "spec: " << specular << endl;
+			cout << "ambi: " << ambient << endl;
+		}
 		result += diffuse + specular + ambient;
 	}
 	return result;
