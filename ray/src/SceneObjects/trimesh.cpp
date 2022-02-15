@@ -143,6 +143,12 @@ bool TrimeshFace::intersectLocal(ray& r, isect& i) const
 	// Barycentric coordinates - basically, how can we represent P as an average of vertices?
 	// FIXME: Might need to switch around u, v
 	i.setBary(baryu, baryv, 1 - baryu - baryv);
+	Material*  m = new Material();
+	// i.setMaterial(*(parent->materials[ids[0]]));
+	*m += baryu * *(parent->materials[ids[0]]);
+	*m += baryv * *(parent->materials[ids[1]]);
+	*m += (1 - baryu - baryv) * *(parent->materials[ids[2]]);
+	i.setMaterial(*m);
 	return true;
 }
 
