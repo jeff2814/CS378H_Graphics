@@ -30,7 +30,7 @@ extern TraceUI* traceUI;
 // Use this variable to decide if you want to print out
 // debugging messages.  Gets set in the "trace single ray" mode
 // in TraceGLWindow, for example.
-bool debugMode = true;
+bool debugMode = false;
 
 // Trace a top-level ray through pixel(i,j), i.e. normalized window coordinates (x,y),
 // through the projection plane, and out into the scene.  All we do is
@@ -122,7 +122,7 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 			{
 				//refraction
 				double formula = 1 - std::pow(n_1/n_2, 2.0) * (1-cos_1*cos_1); //http://www.starkeffects.com/snells-law-vector.shtml
-				dir = n_1/n_2 * r.getDirection() + (n_1/n_2 *cos_1 - sqrt(formula)) * i.getN();
+				dir = n_1/n_2 * glm::normalize(r.getDirection()) + (n_1/n_2 *cos_1 - sqrt(formula)) * i.getN();
 				auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
 				auto temp = traceRay(nextRay, thresh, depth + 1, dist);
 				if(inside) {
@@ -160,7 +160,7 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 		// 	// traceRay(nextRay, thresh, traceUI->getDepth(), t);
 		// }
 		if(debugMode){
-			cout << "color: " << colorC << endl;
+			cout << "\ncolor: " << colorC << endl;
 		}
 	} else {
 		// No intersection.  This ray travels to infinity, so we color
