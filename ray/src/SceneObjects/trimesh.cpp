@@ -15,7 +15,6 @@
 #include <typeinfo>
 
 extern TraceUI* traceUI;
-
 using namespace std;
 
 Trimesh::~Trimesh()
@@ -143,12 +142,31 @@ bool TrimeshFace::intersectLocal(ray& r, isect& i) const
 	// Barycentric coordinates - basically, how can we represent P as an average of vertices?
 	// FIXME: Might need to switch around u, v
 	i.setBary(baryu, baryv, 1 - baryu - baryv);
-	Material*  m = new Material();
-	// i.setMaterial(*(parent->materials[ids[0]]));
-	*m += baryu * *(parent->materials[ids[0]]);
-	*m += baryv * *(parent->materials[ids[1]]);
-	*m += (1 - baryu - baryv) * *(parent->materials[ids[2]]);
-	i.setMaterial(*m);
+	i.setObject(this);
+
+	if(parent->normals.empty())
+		parent->generateNormals();
+	//cout << "normals: " << parent->normals.size() << endl;
+	glm::dvec3 newNorm = glm::dvec3(0, 0, 0);
+	newNorm += (1-baryu-baryv) * parent->normals[ids[0]];
+	newNorm += baryu * parent->normals[ids[1]];
+	newNorm += baryv * parent->normals[ids[2]];
+	
+	i.setN(-glm::normalize(newNorm));
+
+	if(parent->materials.empty())
+	{
+		i.setMaterial(*this->material);
+		//cout << "curr material: " << glm::to_string(i.getMaterial().kd(i)) << endl;
+	}
+	else
+	{
+		Material*  m = new Material();
+		*m += (1 - baryu - baryv) * *(parent->materials[ids[0]]);
+		*m += baryu * *(parent->materials[ids[1]]);
+		*m += baryv * *(parent->materials[ids[2]]);
+		i.setMaterial(*m);
+	}
 	return true;
 }
 
