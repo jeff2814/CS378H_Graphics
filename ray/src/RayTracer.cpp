@@ -109,27 +109,34 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 
 		if(m.Trans())
 		{
-			bool inside = glm::dot(r.getDirection(), i.getN()) > 0;
+			bool inside = glm::dot(r.getDirection(), i.getN()) >= RAY_EPSILON;
+			double out = (inside) ? -1.0: 1.0;
+			auto norm = out*i.getN();
 			double n_1 = (inside) ? m.index(i) : 1.0001;
 			double n_2 = (inside) ? 1.0001 : m.index(i);
 
-			double out = (inside) ? -1.0: 1.0;
-			double cos_1 = glm::dot(glm::normalize(r.getDirection()), glm::normalize(out*i.getN()));
+			double cos_1 = glm::dot(-r.getDirection(), norm);
 			double sin_2 = n_1/n_2 * sqrt(1-cos_1*cos_1);
+			auto dir = glm::dvec3(1, 1, 1);
 			double dist = i.getT() - t;
-			glm::dvec3 dir = glm::dvec3(1, 1, 1);
 			if(sin_2 <= 1 && sin_2 >= -1) //domain of sine
 			{
-				//refraction
-				double formula = 1 - std::pow(n_1/n_2, 2.0) * (1-cos_1*cos_1); //http://www.starkeffects.com/snells-law-vector.shtml
-				dir = n_1/n_2 * glm::normalize(r.getDirection()) + (n_1/n_2 *cos_1 - sqrt(formula)) * i.getN();
+				auto ratio = n_1/n_2;
+				auto term = sqrt(1 - ratio * ratio * (1 - cos_1 * cos_1));
+				auto dir = (ratio * cos_1 - term) * norm + ratio * r.getDirection();
+
+				if(debugMode) {
+					cout << "\nREFRACT DIRECTION"  << endl;
+					cout << dir << endl;
+				}
+
 				auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
 				auto temp = traceRay(nextRay, thresh, depth + 1, dist);
-				if(inside) {
-					for(int j = 0; j < 3; j++){
-						temp[j] *= pow(m.kt(i)[j], dist);
-					}
-				}
+				// if(inside) {
+				// 	for(int j = 0; j < 3; j++){
+				// 		temp[j] *= pow(m.kt(i)[j], dist);
+				// 	}
+				// }
 				if(debugMode) {
 					cout << "\nREFRACTION CONTRIBUTIONS" << endl;
 					cout << "depth " << depth << endl;

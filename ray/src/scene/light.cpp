@@ -26,10 +26,9 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray& r, const glm::dvec3& p
 		
 		if(debugMode) {
 			cout << "CALCULATING SHADOW ATTEN" << endl;
+			cout << "r.pos, r.dir: " << r.getPosition() << " " << r.getDirection() << endl;
+			cout << "i.T, i.N: " << i.getT() << " " << i.getN() << endl;
 			cout << "isTrans: " << i.getMaterial().Trans() << endl;
-		}
-		if (!i.getMaterial().Trans()){
-			return glm::dvec3(0, 0, 0);
 		}
 		auto newPoint = r.at(i.getT() + RAY_EPSILON);
 		auto d = r.getDirection();

@@ -53,13 +53,10 @@ glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 	// 		.
 	// }
 	auto errorTerm = RAY_EPSILON;
-	// cout << "normal " << i.getN() << endl;
-	// cout << "r.direction " << r.getDirection() << endl;
-	// cout << glm::dot(i.getN(), r.getDirection()) << endl;
-	// if (glm::dot(i.getN(), r.getDirection()) < 0) {
-	// 	errorTerm *= -1.0;
-	// }
-	auto p(r.at(i.getT()));
+	if (glm::dot(i.getN(), r.getDirection()) > 0) {
+		errorTerm *= -1.0;
+	}
+	auto p(r.at(i.getT() + errorTerm));
 	auto result = glm::dvec3(0, 0, 0);
 	int numLight = 0;
 	for ( const auto& pLight : scene->getAllLights() ){
