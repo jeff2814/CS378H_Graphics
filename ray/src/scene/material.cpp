@@ -54,14 +54,14 @@ glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 	// }
 	auto errorTerm = RAY_EPSILON;
 	if (glm::dot(i.getN(), r.getDirection()) > 0) {
-		errorTerm *= -1.0;
+		errorTerm *= -1;
 	}
 	auto p(r.at(i.getT() + errorTerm));
 	auto result = glm::dvec3(0, 0, 0);
 	int numLight = 0;
 	for ( const auto& pLight : scene->getAllLights() ){
 		auto Iin = glm::dvec3(0,0,0);
-		auto nextRay(ray(p, -1.0 * pLight->getDirection(p), glm::dvec3(1, 1, 1), ray::RayType::SHADOW));
+		auto nextRay(ray(p, -pLight->getDirection(p), glm::dvec3(1, 1, 1), ray::RayType::SHADOW));
 		auto shadow = pLight->shadowAttenuation(nextRay, p);
 		auto distAtten = pLight->distanceAttenuation(p);
 		Iin += shadow * pLight->getColor() * distAtten;

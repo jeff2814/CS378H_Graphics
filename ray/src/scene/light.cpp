@@ -25,23 +25,33 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray& r, const glm::dvec3& p
 	if (scene->intersect(const_cast<ray&>(r), i)) {
 		
 		if(debugMode) {
-			cout << "CALCULATING SHADOW ATTEN" << endl;
+			cout << "DIRECTIONAL CALCULATING SHADOW ATTEN" << endl;
 			cout << "r.pos, r.dir: " << r.getPosition() << " " << r.getDirection() << endl;
 			cout << "i.T, i.N: " << i.getT() << " " << i.getN() << endl;
 			cout << "isTrans: " << i.getMaterial().Trans() << endl;
 		}
-		auto newPoint = r.at(i.getT() + RAY_EPSILON);
+		double errorTerm = RAY_EPSILON;
+		if (glm::dot(i.getN(), r.getDirection()) < 0) {
+			errorTerm *= -1;
+		}
+		auto newPoint = r.at(i.getT() + errorTerm);
 		auto d = r.getDirection();
 		auto kt = i.getMaterial().kt(i);
 		auto second(ray(newPoint, d, r.getAtten(), ray::RayType::SHADOW));
 		isect i2;
 		if (scene->intersect(second, i2)) {
+			if(debugMode) {
+				 cout << "Second Intersection" << endl;
+			}
 			auto distance = i.getT();
 			glm::dvec3 mult(std::pow(kt[0], distance), std::pow(kt[1], distance), std::pow(kt[2], distance));
 			res *= mult;
 		}
 		if(debugMode) {
+			cout << "kt: " << kt << endl;
+			cout << "diffuse: " << i.getMaterial().kd(i) << endl;
 			cout << "i.N, i.T: " << i.getN() << i.getT() << endl;
+			cout << res << endl;
 		}
 	}
 	return res;
@@ -85,7 +95,32 @@ glm::dvec3 PointLight::shadowAttenuation(const ray& r, const glm::dvec3& p) cons
 {
 	// YOUR CODE HERE:
 	// You should implement shadow-handling code here.
-	return glm::dvec3(1,1,1);
+	auto res = glm::dvec3(1.0, 1.0, 1.0);
+	isect i;
+	auto makeshift(ray(r.getPosition(), -r.getDirection(), r.getAtten(), ray::RayType::SHADOW));
+	if (scene->intersect(const_cast<ray&>(makeshift), i)) {
+		
+		if(debugMode) {
+			cout << "POINT CALCULATING SHADOW ATTEN" << endl;
+			cout << "r.pos, r.dir: " << r.getPosition() << " " << r.getDirection() << endl;
+			cout << "i.T, i.N: " << i.getT() << " " << i.getN() << endl;
+			cout << "isTrans: " << i.getMaterial().Trans() << endl;
+		}
+		auto newPoint = makeshift.at(i.getT() + RAY_EPSILON);
+		auto d = makeshift.getDirection();
+		auto kt = i.getMaterial().kt(i);
+		auto second(ray(newPoint, d, r.getAtten(), ray::RayType::SHADOW));
+		isect i2;
+		if (scene->intersect(second, i2)) {
+			auto distance = i.getT();
+			glm::dvec3 mult(std::pow(kt[0], distance), std::pow(kt[1], distance), std::pow(kt[2], distance));
+			res *= mult;
+		}
+		if(debugMode) {
+			cout << "i.N, i.T: " << i.getN() << i.getT() << endl;
+		}
+	}
+	return res;
 }
 
 #define VERBOSE 0
