@@ -13,6 +13,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <typeinfo>
+extern bool debugMode;
 
 extern TraceUI* traceUI;
 using namespace std;
@@ -104,7 +105,6 @@ bool TrimeshFace::intersectLocal(ray& r, isect& i) const
 	// YOUR CODE HERE
 	//
 	// FIXME: Add ray-trimesh intersection
-	// FIXME: segfault when running easy1
 	if(degen) {
 		return false;
 	}
@@ -114,12 +114,12 @@ bool TrimeshFace::intersectLocal(ray& r, isect& i) const
 	auto o = r.getPosition();
 	auto v = r.getDirection();
 	// cout << glm::to_string(normal) << endl;
-	double denom = glm::dot(v, normal);
+	double denom = glm::dot(v, -normal);
 	// arbitrary constant to make sure no blow up
 	if(denom < 0.0001){
 		return false;
 	}
-	auto t = glm::dot(a - o, normal)/denom;
+	auto t = glm::dot(a -o, -normal)/denom;
 	if(t < 0){
 		return false;
 	}
@@ -128,8 +128,9 @@ bool TrimeshFace::intersectLocal(ray& r, isect& i) const
 	if(glm::dot(glm::cross(b - a,p - a), normal) < 0){
 		return false;
 	}
-	auto baryu = glm::dot(glm::cross(c - b,p - b), normal)/denom;
-	auto baryv = glm::dot(glm::cross(a - c, p - c), normal)/denom;
+	auto baryu = glm::dot(glm::cross(c- a, c - p), normal)/glm::length(glm::cross(a-b, c-a)); //APC, B
+	auto baryv = glm::dot(glm::cross(b - c, b - p), normal)/glm::length(glm::cross(a-b, c-a)); //BPC, A
+	auto baryw = 1- baryu - baryv;
 	if(baryu < 0){
 		return false;
 	}
@@ -145,14 +146,15 @@ bool TrimeshFace::intersectLocal(ray& r, isect& i) const
 	i.setObject(this);
 
 	if(parent->normals.empty())
-		parent->generateNormals();
-	//cout << "normals: " << parent->normals.size() << endl;
-	glm::dvec3 newNorm = glm::dvec3(0, 0, 0);
-	newNorm += (1-baryu-baryv) * parent->normals[ids[0]];
-	newNorm += baryu * parent->normals[ids[1]];
-	newNorm += baryv * parent->normals[ids[2]];
-	
-	i.setN(-glm::normalize(newNorm));
+		i.setN(normal);
+	else
+	{
+		// 012, 021, 102
+		auto newNorm = baryu * parent->normals[ids[1]];
+		newNorm += baryv * parent->normals[ids[0]];	
+		newNorm += baryw * parent->normals[ids[2]];
+		i.setN(glm::normalize(newNorm));
+	}
 
 	if(parent->materials.empty())
 	{
@@ -161,11 +163,16 @@ bool TrimeshFace::intersectLocal(ray& r, isect& i) const
 	}
 	else
 	{
-		Material*  m = new Material();
-		*m += (1 - baryu - baryv) * *(parent->materials[ids[0]]);
-		*m += baryu * *(parent->materials[ids[1]]);
-		*m += baryv * *(parent->materials[ids[2]]);
-		i.setMaterial(*m);
+		Material m = baryu * ((parent->materials[ids[1]])[0]);
+		m += baryv * ((parent->materials[ids[0]])[0]);
+		m += baryw * ((parent->materials[ids[2]])[0]);
+		i.setMaterial(m);
+		if(debugMode)
+		{
+			cout << "corners " << glm::to_string(a) << glm::to_string(b) << glm::to_string(c) << endl;
+			cout << "vals " << baryu << " " << baryv << " " << baryw << endl;
+			cout << "center diff: " << glm::to_string(baryu*b + baryv*a + baryw*c - p) << endl;
+		}
 	}
 	return true;
 }
