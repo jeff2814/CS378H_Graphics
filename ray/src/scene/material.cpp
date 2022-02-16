@@ -69,7 +69,7 @@ glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 		auto l = -1.0 * pLight->getDirection(p);
 		auto v = glm::normalize( -1.0 * r.getDirection());
 		auto wref = glm::normalize(glm::normalize(l) - (2 * glm::dot(glm::normalize(l), i.getN()) * i.getN()));
-		auto maxln = getMax(glm::dot(-1.0 * l, i.getN()), 0);
+		auto maxln = getMax(glm::dot(-l, i.getN()), 0);
 		if (i.getMaterial().Trans()) {
 			maxln = abs(glm::dot(l, i.getN()));
 		}
