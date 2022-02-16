@@ -118,63 +118,55 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 			double cos_1 = glm::dot(-r.getDirection(), norm);
 			double sin_2 = n_1/n_2 * sqrt(1-cos_1*cos_1);
 			auto dir = glm::dvec3(1, 1, 1);
-			double dist = abs(i.getT() - t);
+
 			if(sin_2 <= 1 && sin_2 >= -1) //domain of sine
 			{
 				auto ratio = n_1/n_2;
 				auto term = sqrt(1 - ratio * ratio * (1 - cos_1 * cos_1));
-				auto dir = (ratio * cos_1 - term) * norm + ratio * r.getDirection();
+				dir = (ratio * cos_1 - term) * norm + ratio * r.getDirection();
 			}
 			else
 			{
 				//total internal reflection
 				dir = refl_helper(r, -1.0*i.getN());
 			}
+
 			if(debugMode) {
 				cout << "\nREFRACT DIRECTION"  << endl;
 				cout << dir << endl;
 			}
-			double currTime = i.getT();
-			auto nextRay(ray(r.at(i.getT()), dir, glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
-			auto temp = traceRay(nextRay, thresh, depth + 1, currTime);
+			double dummy;
+			auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
+			auto temp = traceRay(nextRay, thresh, depth + 1, dummy);
 			if(debugMode) {
-				cout << "KT ATTENUATION" << endl;
-				cout << "pre :" << temp << endl;
+				cout << "KT ATTENTUATION" << endl;
+				cout << "before: " << temp << endl;
 			}
-			if(!inside) {
+			if(inside) {
 				for(int j = 0; j < 3; j++){
-					temp[j] *= pow(m.kt(i)[j], dist);
+					temp[j] *= pow(m.kt(i)[j], i.getT());
 				}
 			}
 			if(debugMode) {
-				
-				cout << "KT :" << m.kt(i) << endl;
-				cout << "dist: " << dist << endl;
-				cout << "temp :" << temp << endl;
+				cout << "after: " << temp << endl;
+				cout << "kt: " << m.kt(i) << endl;
+				cout << "t: " << i.getT() << endl;
 			}
-			// cout << "trans: " << temp << endl;
 			if(debugMode) {
 				cout << "\nREFRACTION CONTRIBUTIONS" << endl;
 				cout << "depth " << depth << endl;
 				cout << "contr " << temp << endl;
 			}
 			colorC += temp;
-
-			// if(inside)
-			// {
-			// 	//transmissive material property 
-			// 	//thresh *= pow(m.kt(i), i.getT());
-			// }
-			
-			// colorC += thresh * traceRay(nextRay, thresh, depth + 1, t) * m.shade(scene.get(), r, i);
 		}
-		else if (m.Refl())
-		{
-			//thresh = thresh * m.kr(i)
-			auto dir = refl_helper(r, i.getN());
-			auto nextRay(ray(r.at(i.getT()), dir, glm::dvec3(1, 1, 1), ray::RayType::REFLECTION));
-			colorC += m.kr(i) * traceRay(nextRay, thresh, traceUI->getDepth(), t);
-		}
+		// else if (m.Refl())
+		// {
+		// 	//thresh = thresh * m.kr(i)
+		// 	auto dir = refl_helper(r, i.getN());
+		// 	colorC += thresh * m.shade(scene.get(), r, i);
+		// 	// auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), ray::RayType::REFLECTION));
+		// 	// traceRay(nextRay, thresh, traceUI->getDepth(), t);
+		// }
 		if(debugMode){
 			cout << "\ncolor: " << colorC << endl;
 		}
