@@ -66,7 +66,7 @@ glm::dvec3 RayTracer::trace(double x, double y)
 			ret += temp;
 			counter++;
 		}
-	ret *= 1.0/counter;
+	ret *= 1.0/counter; //FIXME? I'm not sure if this is actually averaging out the rays/anti-aliasing them
 	
 	return ret;
 }

@@ -1,6 +1,8 @@
 Names: Jeffery Wu, Allen Zheng
 
 Known Issues: 
+    - easy1.ray has no shadows projecting onto the trimesh surface, some other decisions due to i
+    - anti-aliasing is slow due to the method we chose
 
 Milestone Requirements:
 -----------------------------
@@ -10,6 +12,7 @@ Interpolation: Per-vertex (if present) normals & materials interpolated with abo
 Illumination Model: To our knowledge, should support all types of materials e.g. Emissive, Transmissive, etc.
     Shading: Most code present in shade() of material.cpp, following equations discussed in class 
     Attenuation: Shadow/distance logic written in light.cpp, applied to shade logic described above
+        Implementation Decision: Naive handling of overlapping transmissive objects.
     Refract/Reflect: Logic located in recursive TraceRay() function, also uses attenuation a bit.
 
 Anti-Aliasing: Uses basic supersampling method described in class (n x n) grid.
