@@ -45,11 +45,29 @@ glm::dvec3 RayTracer::trace(double x, double y)
 		scene->clearIntersectCache();		
 	}
 
-	ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1), ray::VISIBILITY);
-	scene->getCamera().rayThrough(x,y,r);
-	double dummy;
-	glm::dvec3 ret = traceRay(r, glm::dvec3(1.0,1.0,1.0), 0, dummy);
-	ret = glm::clamp(ret, 0.0, 1.0);
+	auto ret = glm::dvec3(0, 0, 0);
+	int scale = 1;
+	int aa_thresh = 0;
+	int counter = 0;
+	if(traceUI->aaSwitch())
+	{
+		scale = traceUI->getSuperSamples();
+		aa_thresh = traceUI->getAaThreshold();	
+	}
+	for(int i = 0 ; i < scale; i ++)
+		for(int j = 0; j < scale; j ++)
+		{
+			int len = aa_thresh/scale;
+			ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1), ray::VISIBILITY);
+			scene->getCamera().rayThrough(x + aa_thresh/2 - i*len,y + aa_thresh/2 - j*len,r);
+			double dummy;
+			glm::dvec3 temp = traceRay(r, glm::dvec3(1.0,1.0,1.0), 0, dummy);
+			temp = glm::clamp(temp, 0.0, 1.0);
+			ret += temp;
+			counter++;
+		}
+	ret *= 1.0/counter;
+	
 	return ret;
 }
 

@@ -1,0 +1,17 @@
+Names: Jeffery Wu, Allen Zheng
+
+Known Issues: 
+
+Milestone Requirements:
+-----------------------------
+Triangle-Ray Intersection: Implemented using barycentric coordinates in intersectLocal() of trimesh.cpp
+Interpolation: Per-vertex (if present) normals & materials interpolated with above coordinates in the same function.
+
+Illumination Model: To our knowledge, should support all types of materials e.g. Emissive, Transmissive, etc.
+    Shading: Most code present in shade() of material.cpp, following equations discussed in class 
+    Attenuation: Shadow/distance logic written in light.cpp, applied to shade logic described above
+    Refract/Reflect: Logic located in recursive TraceRay() function, also uses attenuation a bit.
+
+Anti-Aliasing: Uses basic supersampling method described in class (n x n) grid.
+
+
