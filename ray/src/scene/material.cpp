@@ -93,7 +93,7 @@ glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 			cout << "spec: " << specular << endl;
 			cout << "ambi: " << ambient << endl;
 		}
-		result += diffuse + specular + ambient;
+		result += diffuse + specular + ambient + ke(i);
 	}
 	return result;
 }
