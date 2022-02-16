@@ -118,31 +118,12 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 			double cos_1 = glm::dot(-r.getDirection(), norm);
 			double sin_2 = n_1/n_2 * sqrt(1-cos_1*cos_1);
 			auto dir = glm::dvec3(1, 1, 1);
-			double dist = i.getT() - t;
+
 			if(sin_2 <= 1 && sin_2 >= -1) //domain of sine
 			{
 				auto ratio = n_1/n_2;
 				auto term = sqrt(1 - ratio * ratio * (1 - cos_1 * cos_1));
-				auto dir = (ratio * cos_1 - term) * norm + ratio * r.getDirection();
-
-				if(debugMode) {
-					cout << "\nREFRACT DIRECTION"  << endl;
-					cout << dir << endl;
-				}
-
-				auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
-				auto temp = traceRay(nextRay, thresh, depth + 1, dist);
-				// if(inside) {
-				// 	for(int j = 0; j < 3; j++){
-				// 		temp[j] *= pow(m.kt(i)[j], dist);
-				// 	}
-				// }
-				if(debugMode) {
-					cout << "\nREFRACTION CONTRIBUTIONS" << endl;
-					cout << "depth " << depth << endl;
-					cout << "contr " << temp << endl;
-				}
-				colorC += temp;
+				dir = (ratio * cos_1 - term) * norm + ratio * r.getDirection();
 			}
 			else
 			{
@@ -150,13 +131,33 @@ glm::dvec3 RayTracer::traceRay(ray& r, const glm::dvec3& thresh, int depth, doub
 				dir = refl_helper(r, -1.0*i.getN());
 			}
 
-			// if(inside)
-			// {
-			// 	//transmissive material property 
-			// 	//thresh *= pow(m.kt(i), i.getT());
-			// }
-			
-			// colorC += thresh * traceRay(nextRay, thresh, depth + 1, t) * m.shade(scene.get(), r, i);
+			if(debugMode) {
+				cout << "\nREFRACT DIRECTION"  << endl;
+				cout << dir << endl;
+			}
+			double dummy;
+			auto nextRay(ray(r.at(i.getT()), glm::normalize(dir), glm::dvec3(1, 1, 1), ray::RayType::REFRACTION));
+			auto temp = traceRay(nextRay, thresh, depth + 1, dummy);
+			if(debugMode) {
+				cout << "KT ATTENTUATION" << endl;
+				cout << "before: " << temp << endl;
+			}
+			if(inside) {
+				for(int j = 0; j < 3; j++){
+					temp[j] *= pow(m.kt(i)[j], i.getT());
+				}
+			}
+			if(debugMode) {
+				cout << "after: " << temp << endl;
+				cout << "kt: " << m.kt(i) << endl;
+				cout << "t: " << i.getT() << endl;
+			}
+			if(debugMode) {
+				cout << "\nREFRACTION CONTRIBUTIONS" << endl;
+				cout << "depth " << depth << endl;
+				cout << "contr " << temp << endl;
+			}
+			colorC += temp;
 		}
 		// else if (m.Refl())
 		// {
