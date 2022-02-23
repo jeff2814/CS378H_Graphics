@@ -5,6 +5,7 @@
 #include "../ui/TraceUI.h"
 #include "../scene/material.h"
 extern TraceUI* traceUI;
+extern bool debugMode;
 
 glm::dvec3 CubeMap::getColor(ray r) const
 {
@@ -22,28 +23,34 @@ glm::dvec3 CubeMap::getColor(ray r) const
 	double u = 0;
 	double v = 0;
 
-	auto max_dir = max(abs(x_dir), max(y_dir, z_dir));
-	cout << " x: " << x_dir << " y: " << y_dir << " z " << z_dir << " max " << max_dir << endl;
+	auto max_dir = max(abs(x_dir), max(abs(y_dir), abs(z_dir)));
+	if(debugMode){
+		cout << " x: " << x_dir << " y: " << y_dir << " z " << z_dir << " max " << max_dir << endl;
+	}
 	if(max_dir == abs(x_dir))
 	{
-		face = (x_dir > 0) ? 0: 1;
-		u = (x_dir > 0) ? y_dir : y_dir;
-		v = (x_dir  > 0) ? z_dir: z_dir;
+		face = (x_dir < 0) ? 0: 1;
+		u = (x_dir < 0) ? y_dir : -y_dir;
+		v = (x_dir  < 0) ? -z_dir: z_dir;
 	}
 	if(max_dir == abs(y_dir))
 	{
-		face = (y_dir > 0) ? 2: 3;
-		u = (y_dir > 0) ? x_dir: x_dir;
-		v = (y_dir > 0) ? z_dir: z_dir;
+		face = (y_dir < 0) ? 2: 3;
+		u = (y_dir < 0) ? x_dir: -x_dir;
+		v = (y_dir < 0) ? -z_dir: z_dir;
 	}
 	if(max_dir == abs(z_dir))
 	{
-		face = (z_dir > 0) ? 4: 5;
-		u = (z_dir > 0) ? x_dir : x_dir;
-		v = (z_dir > 0) ? y_dir : y_dir;
+		face = (z_dir < 0) ? 4: 5;
+		u = (z_dir < 0) ? x_dir : -x_dir;
+		v = (z_dir < 0) ? -y_dir : y_dir;
 	}
-	cout << "face: " << face << " u: " << u << " v: " << v << endl;
-	auto color =  tMap[face]->getMappedValue(glm::dvec2(abs(u), abs(v)));
+	if (debugMode) {
+		cout << "face: " << face << " u: " << u << " v: " << v << endl;
+	}
+
+	// auto color =  tMap[face]->getMappedValue(glm::dvec2(abs(u), abs(v)));
+	auto color =  tMap[face]->getMappedValue(glm::dvec2(u + .5, v + .5));
 	return color;
 }
 

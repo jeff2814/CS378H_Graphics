@@ -143,13 +143,17 @@ glm::dvec3 TextureMap::getMappedValue(const glm::dvec2& coord) const
 	auto c = getPixelAt(u_2, v_2);
 	auto d = getPixelAt(u_1, v_2);
 	
-	double alpha = ((double) u_2 - u);
-	double beta = (u - (double) u_1);
+	// double alpha = ((double) u_2 - u);
+	// double beta = (u - (double) u_1);
+	double hor = ((double) u_2 - u);
+	double vert = ((double) v_2 - v);
 	
-	auto ret = ((double) v_2 - v)*(alpha*a + beta*b) + (v- (double) v_1)*(alpha*d + beta*c);
+	// auto ret = ((double) v_2 - v)*(alpha*a + beta*b) + (v- (double) v_1)*(alpha*d + beta*c);
+	auto ret = (hor * vert * c) + (hor * (1 - vert) * b) + ((1 - hor) * vert * d) + ((1 - hor) * (1 - vert) * a);
 
-	if(debugMode)
-		cout << "returned mapped val: " << ret << endl;
+	if(debugMode){
+		cout << "returned cubemap val: " << ret << endl;
+	}
 
 	return ret; 
 }
@@ -162,9 +166,10 @@ glm::dvec3 TextureMap::getPixelAt(int x, int y) const
 	// raytracer, you need to implement this function.
 
 	//bitmap.cpp: Data is (R,G,B) in row-major order
-	auto red = data[3*y*width + 3*x];
-	auto green = data[3*y*width + 3*x + 1];
-	auto blue = data[3*y*width + 3*x + 2];
+	auto pos = 3*y*width + 3*x;
+	auto red = data[pos];
+	auto green = data[pos + 1];
+	auto blue = data[pos + 2];
 
 	return glm::dvec3(red, green, blue)/(256.0);
 }
