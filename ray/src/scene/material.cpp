@@ -123,14 +123,15 @@ glm::dvec3 TextureMap::getMappedValue(const glm::dvec2& coord) const
 	// and use these to perform bilinear interpolation
 	// of the values.
 
-	double u = coord[0];
-	double v = coord[1];
+	double u = coord[0] * (width - 1);
+	double v = coord[1] * (height - 1);
 
 	// NOT SURE: WHAT ARE THE VALUES OF U_1, V_1, U_2, V_2??? JUST NEAREST INT VALUES?
 
 	int u_1 = (int) u;
 	int v_1 = (int) v;
 
+	//integer u, v
 	if(u - (double) u_1 == 0 && v - (double) v_1 == 0)
 		return getPixelAt(u_1, v_1);
 
@@ -139,17 +140,16 @@ glm::dvec3 TextureMap::getMappedValue(const glm::dvec2& coord) const
 
 	auto a = getPixelAt(u_1, v_1);
 	auto b = getPixelAt(u_2, v_1);
-	auto c = getPixelAt(u_1, v_2);
-	auto d = getPixelAt(u_2, v_2);
+	auto c = getPixelAt(u_2, v_2);
+	auto d = getPixelAt(u_1, v_2);
 	
-	double alpha = ((double) u_2 - u)/(u_2 - u_1);
-	double beta = (u - (double) u_1)/(u_2 - u_1);
-
-	auto ret = (((double) v_2 - v)/(v_2 - v_1))*(alpha*a + beta*b) + ((v- (double) v_1)/(v_2 - v_1))*(alpha*d + beta*c);
+	double alpha = ((double) u_2 - u);
+	double beta = (u - (double) u_1);
 	
-	ret = glm::normalize(ret);
+	auto ret = ((double) v_2 - v)*(alpha*a + beta*b) + (v- (double) v_1)*(alpha*d + beta*c);
 
-	cout << "returned mapped val: " << ret << endl;
+	if(debugMode)
+		cout << "returned mapped val: " << ret << endl;
 
 	return ret; 
 }
@@ -161,12 +161,12 @@ glm::dvec3 TextureMap::getPixelAt(int x, int y) const
 	// In order to add texture mapping support to the
 	// raytracer, you need to implement this function.
 
-	//Data is (R,G,B) in row-major order
+	//bitmap.cpp: Data is (R,G,B) in row-major order
 	auto red = data[3*y*width + 3*x];
 	auto green = data[3*y*width + 3*x + 1];
 	auto blue = data[3*y*width + 3*x + 2];
 
-	return glm::dvec3(red, blue, green);
+	return glm::dvec3(red, green, blue)/(256.0);
 }
 
 glm::dvec3 MaterialParameter::value(const isect& is) const
