@@ -29,21 +29,21 @@ glm::dvec3 CubeMap::getColor(ray r) const
 	}
 	if(max_dir == abs(x_dir))
 	{
-		face = (x_dir < 0) ? 0: 1;
-		u = (x_dir < 0) ? y_dir : -y_dir;
-		v = (x_dir  < 0) ? -z_dir: z_dir;
+		face = (x_dir < 0) ? 1: 0;
+		v = (x_dir < 0) ? y_dir : y_dir;
+		u = (x_dir  < 0) ? -z_dir: z_dir;
 	}
 	if(max_dir == abs(y_dir))
 	{
-		face = (y_dir < 0) ? 2: 3;
-		u = (y_dir < 0) ? x_dir: -x_dir;
+		face = (y_dir < 0) ? 3: 2;
+		u = (y_dir < 0) ? x_dir: x_dir;
 		v = (y_dir < 0) ? -z_dir: z_dir;
 	}
 	if(max_dir == abs(z_dir))
 	{
 		face = (z_dir < 0) ? 4: 5;
 		u = (z_dir < 0) ? x_dir : -x_dir;
-		v = (z_dir < 0) ? -y_dir : y_dir;
+		v = (z_dir < 0) ? y_dir : y_dir;
 	}
 	if (debugMode) {
 		cout << "face: " << face << " u: " << u << " v: " << v << endl;
