@@ -52,6 +52,7 @@ Scene* Parser::parseScene()
       case SQUARE:
       case CYLINDER:
       case CONE:
+      case TORUS:
       case TRIMESH:
       case TRANSLATE:
       case ROTATE:
@@ -163,6 +164,7 @@ void Parser::parseTransformableElement( Scene* scene, TransformNode* transform, 
       case BOX:
       case SQUARE:
       case CYLINDER:
+      case TORUS:
       case CONE:
       case TRIMESH:
       case TRANSLATE:
@@ -193,6 +195,7 @@ void Parser::parseGroup(Scene* scene, TransformNode* transform, const Material& 
       case BOX:
       case SQUARE:
       case CYLINDER:
+      case TORUS:
       case CONE:
       case TRIMESH:
       case TRANSLATE:
@@ -233,6 +236,9 @@ void Parser::parseGeometry(Scene* scene, TransformNode* transform, const Materia
       return;
     case CYLINDER:
       parseCylinder(scene, transform, mat);
+      return;
+    case TORUS:
+      parseTorus(scene, transform, mat);
       return;
     case CONE:
       parseCone(scene, transform, mat);
@@ -491,6 +497,49 @@ void Parser::parseCylinder(Scene* scene, TransformNode* transform, const Materia
         return;
       default:
         throw SyntaxErrorException( "Expected: cylinder attributes", _tokenizer );
+    }
+  }
+
+}
+
+void Parser::parseTorus(Scene* scene, TransformNode* transform, const Material& mat)
+{
+  Torus* torus = 0;
+  Material* newMat = 0;
+
+  _tokenizer.Read( TORUS );
+  _tokenizer.Read( LBRACE );
+
+  double inner_r = 0.0;
+  double outer_r = 0.0;
+
+  for( ;; )
+  {
+    const Token* t = _tokenizer.Peek();
+
+    switch( t->kind() )
+    {
+      case MATERIAL:
+        delete newMat;
+        newMat = parseMaterialExpression( scene, mat );
+        break;
+      case NAME:
+        parseIdentExpression();
+        break;
+      case INNER_RADIUS:
+        inner_r = parseScalarExpression();
+        break;
+      case OUTER_RADIUS:
+        outer_r = parseScalarExpression();
+        break;
+      case RBRACE:
+         _tokenizer.Read( RBRACE );
+        torus= new Torus(scene, newMat ? newMat : new Material(mat), inner_r, outer_r);
+        torus->setTransform( transform );
+        scene->add( torus );
+        return;
+      default:
+        throw SyntaxErrorException( "Expected: torus attributes", _tokenizer );
     }
   }
 

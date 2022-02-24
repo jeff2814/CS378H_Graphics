@@ -11,6 +11,7 @@
 #include "../SceneObjects/Box.h"
 #include "../SceneObjects/Cone.h"
 #include "../SceneObjects/Cylinder.h"
+#include "../SceneObjects/Torus.h"
 #include "../SceneObjects/Sphere.h"
 #include "../SceneObjects/Square.h"
 #include "../SceneObjects/trimesh.h"
@@ -189,7 +190,31 @@ void Box::glDrawLocal(int quality, bool actualMaterials, bool actualTextures) co
 	glCallList(dispListItr->second);
 }
 
+void Torus::glDrawLocal(int quality, bool actualMaterials, bool actualTextures) const
+{
+	// Use this for display lists
+	static std::map<int, GLuint> displayLists;
 
+	std::map<int, GLuint>::iterator dispListItr = displayLists.find( quality );
+	if( dispListItr == displayLists.end() )
+	{
+		dispListItr = (displayLists.insert( std::make_pair(quality, glGenLists(1)) )).first;
+		glNewList(dispListItr->second, GL_COMPILE);
+
+		const int divisions = quality;
+		GLUquadricObj* gluq;
+
+		gluq = gluNewQuadric();
+		gluQuadricDrawStyle( gluq, GLU_FILL );
+		gluQuadricTexture( gluq, GL_TRUE );
+		gluSphere(gluq, 1.0, divisions, divisions);
+		gluDeleteQuadric( gluq );
+
+		glEndList();
+	}
+
+	glCallList(dispListItr->second);
+}
 
 void Cone::glDrawLocal(int quality, bool actualMaterials, bool actualTextures) const
 {

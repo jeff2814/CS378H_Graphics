@@ -54,6 +54,7 @@ string getNameForToken( const SYMBOL kind )
     tokenNames[ BOX ]               = "box";
     tokenNames[ SQUARE ]            = "square";
     tokenNames[ CYLINDER ]          = "cylinder";
+    tokenNames[ TORUS ]             = "torus";
     tokenNames[ CONE ]              = "cone";
     tokenNames[ TRIMESH ]           = "trimesh";
     tokenNames[ POSITION ]          = "position";
@@ -66,6 +67,8 @@ string getNameForToken( const SYMBOL kind )
     tokenNames[ HEIGHT ]            = "height";
     tokenNames[ BOTTOM_RADIUS ]     = "bottom_radius";
     tokenNames[ TOP_RADIUS ]        = "top_radius";
+    tokenNames[ INNER_RADIUS ]      = "inner_radius";
+    tokenNames[ OUTER_RADIUS]       = "outer_radius";
     tokenNames[ QUATERNIAN ]        = "quaternian";
     tokenNames[ POLYPOINTS ]            = "points";
     tokenNames[ HEIGHT ]            = "height";
@@ -127,6 +130,7 @@ SYMBOL lookupReservedWord(const string& ident) {
     reservedWords["cone"] = CONE;
     reservedWords["constant_attenuation_coeff"] = CONSTANT_ATTENUATION_COEFF;
     reservedWords["cylinder"] = CYLINDER;
+    reservedWords["torus"] = TORUS;
     reservedWords["diffuse"] = DIFFUSE;
     reservedWords["direction"] = DIRECTION;
     reservedWords["directional_light"] = DIRECTIONAL_LIGHT;
@@ -137,12 +141,14 @@ SYMBOL lookupReservedWord(const string& ident) {
     reservedWords["gennormals"] = GENNORMALS;
     reservedWords["height"] = HEIGHT;
     reservedWords["index"] = INDEX;
+    reservedWords["inner_radius"] = INNER_RADIUS;
     reservedWords["linear_attenuation_coeff"] = LINEAR_ATTENUATION_COEFF;
     reservedWords["material"] = MATERIAL;
     reservedWords["materials"] = MATERIALS;
     reservedWords["map"] = MAP;
     reservedWords["name"] = NAME;
     reservedWords["normals"] = NORMALS;
+    reservedWords["outer_radius"] = OUTER_RADIUS;
     reservedWords["point_light"] = POINT_LIGHT;
     reservedWords["points"] = POLYPOINTS;
     reservedWords["polymesh"] = TRIMESH;

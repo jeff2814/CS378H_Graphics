@@ -8,6 +8,7 @@
 ./SceneObjects/Sphere.cpp
 ./SceneObjects/trimesh.cpp
 ./SceneObjects/Cylinder.cpp
+./SceneObjects/Torus.cpp
 ./SceneObjects/Cone.h
 ./SceneObjects/trimesh.h
 ./SceneObjects/Square.cpp
@@ -17,6 +18,7 @@
 ./SceneObjects/Box.cpp
 ./SceneObjects/Sphere.h
 ./SceneObjects/Cylinder.h
+./SceneObjects/Torus.h
 ./ui/debuggingWindow.fl
 ./ui/ModelerCamera.h
 ./ui/CommandLineUI.h
