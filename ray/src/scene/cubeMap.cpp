@@ -50,7 +50,7 @@ glm::dvec3 CubeMap::getColor(ray r) const
 	}
 
 	// auto color =  tMap[face]->getMappedValue(glm::dvec2(abs(u), abs(v)));
-	auto color =  tMap[face]->getMappedValue(glm::dvec2(u + .5, v + .5));
+	auto color = tMap[face]->getMappedValue(glm::dvec2(u + .5, v + .5));
 	return color;
 }
 
