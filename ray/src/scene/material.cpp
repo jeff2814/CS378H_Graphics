@@ -61,7 +61,7 @@ glm::dvec3 Material::shade(Scene* scene, const ray& r, const isect& i) const
 	int numLight = 0;
 	for ( const auto& pLight : scene->getAllLights() ){
 		auto Iin = glm::dvec3(0,0,0);
-		auto nextRay(ray(p, -pLight->getDirection(p), glm::dvec3(1, 1, 1), ray::RayType::SHADOW));
+		auto nextRay(ray(p, pLight->getDirection(p), glm::dvec3(1, 1, 1), ray::RayType::SHADOW));
 		auto shadow = pLight->shadowAttenuation(nextRay, p);
 		auto distAtten = pLight->distanceAttenuation(p);
 		Iin += shadow * pLight->getColor() * distAtten;

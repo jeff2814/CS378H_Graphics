@@ -26,6 +26,7 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray& r, const glm::dvec3& p
 		
 		if(debugMode) {
 			cout << "DIRECTIONAL CALCULATING SHADOW ATTEN" << endl;
+			cout << "light direction: " << p << endl;
 			cout << "r.pos, r.dir: " << r.getPosition() << " " << r.getDirection() << endl;
 			cout << "i.T, i.N: " << i.getT() << " " << i.getN() << endl;
 			cout << "isTrans: " << i.getMaterial().Trans() << endl;
@@ -44,7 +45,8 @@ glm::dvec3 DirectionalLight::shadowAttenuation(const ray& r, const glm::dvec3& p
 				 cout << "Second Intersection" << endl;
 			}
 			auto distance = i.getT();
-			glm::dvec3 mult(std::pow(kt[0], distance), std::pow(kt[1], distance), std::pow(kt[2], distance));
+			auto m2 = i2.getMaterial();
+			glm::dvec3 mult(std::pow(m2.kt(i2)[0], distance), std::pow(m2.kt(i2)[1], distance), std::pow(m2.kt(i2)[2], distance));
 			res *= mult;
 		}
 		if(debugMode) {
