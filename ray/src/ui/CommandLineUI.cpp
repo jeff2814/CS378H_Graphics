@@ -99,9 +99,8 @@ int CommandLineUI::run()
 			writeImage(imgName, width, height, buf);
 
 		double t = (double)(end - start) / CLOCKS_PER_SEC;
-		//		int totalRays = TraceUI::resetCount();
-		//		std::cout << "total time = " << t << " seconds,
-		// rays traced = " << totalRays << std::endl;
+		// int totalRays = TraceUI::resetCount();
+		// std::cout << "total time = " << t << " seconds, rays traced = " << totalRays << std::endl;
 		return 0;
 	} else {
 		std::cerr << "Unable to load ray file '" << rayName << "'"

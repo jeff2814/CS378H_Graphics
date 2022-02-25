@@ -6,7 +6,9 @@
 #include <cmath>
 #include "../ui/TraceUI.h"
 #include <iostream>
-
+#include <unordered_map>
+#include <memory>
+#include <utility>
 
 // Used for glm::to_string
 #include "glm/ext.hpp"
@@ -77,16 +79,41 @@ const char* Trimesh::doubleCheck()
 
 bool Trimesh::intersectLocal(ray& r, isect& i) const
 {
+	double tmin = 0.0;
+	double tmax = 0.0;
+	vector<BVH*> s;
+	s.push_back(root);
 	bool have_one = false;
-	for (auto face : faces) {
-		isect cur;
-		if (face->intersectLocal(r, cur)) {
-			if (!have_one || (cur.getT() < i.getT())) {
-				i = cur;
-				have_one = true;
+	while(!s.empty()) {
+		BVH* curr = s[s.size() - 1];
+		// cout << curr << endl;
+		s.pop_back();
+		if(curr->bounds.intersect(r, tmin, tmax)){
+			if(curr->isLeaf){
+				isect cur;
+				if (faces[curr->index]->intersectLocal(r, cur)) {
+					if (!have_one || (cur.getT() < i.getT())) {
+						i = cur;
+						have_one = true;
+					}
+				}
+				continue;
 			}
 		}
+		if(curr->left != nullptr)
+			s.push_back(curr->left);
+		if(curr->right != nullptr)
+			s.push_back(curr->right);
 	}
+	// for (auto face : faces) {
+	// 	isect cur;
+	// 	if (face->intersectLocal(r, cur)) {
+	// 		if (!have_one || (cur.getT() < i.getT())) {
+	// 			i = cur;
+	// 			have_one = true;
+	// 		}
+	// 	}
+	// }
 	if (!have_one)
 		i.setT(1000.0);
 	return have_one;
@@ -95,6 +122,75 @@ bool Trimesh::intersectLocal(ray& r, isect& i) const
 bool TrimeshFace::intersect(ray& r, isect& i) const
 {
 	return intersectLocal(r, i);
+}
+
+int findLongestAxis2(unordered_map<int, glm::dvec3> v) {
+	double zmin, zmax, xmin, xmax, ymin, ymax;
+	for(std::pair<int, glm::dvec3> element: v){
+		auto currx = element.second[0];
+		auto curry = element.second[1];
+		auto currz = element.second[2];
+		zmin = std::min(zmin, currz);
+		zmax = std::max(zmax, currz);
+		ymin = std::min(ymin, curry);
+		ymax = std::max(ymax, curry);
+		xmin = std::min(xmin, currx);
+		xmax = std::max(xmax,currx);
+	}
+	auto max =  std::max(xmax-xmin, std::max(ymax - ymin, zmax - zmin));
+	return (max == zmax - zmin) ? 2 : (max == ymax - ymin) ? 1 : 0;
+}
+
+BVH* Trimesh::recursiveBuild(unordered_map<int, glm::dvec3> map) {
+	auto v = map;
+	auto result = new BVH(); 
+	// cout << "constructed result:" << result << endl;
+	int longest = findLongestAxis2(v);
+	vector<std::pair<double, int>> axisToSplit;
+	unordered_map<int, glm::dvec3> left;
+	unordered_map<int, glm::dvec3> right;
+	for(std::pair<int, glm::dvec3> element: v){
+		axisToSplit.push_back(make_pair(element.second[longest], element.first));
+		result->bounds.merge(faces[element.first]->getBoundingBox());
+	}
+	if( v.size() == 0) {
+		cout << "map null reference or empty map" << endl;
+		assert(0);
+	}
+	if(v.size() == 1){
+		result->isLeaf = true;
+		for(std::pair<int, glm::dvec3> element:v){
+			result->index = element.first;
+		}
+		return result;
+	}
+	std::sort(axisToSplit.begin(), axisToSplit.end());
+	int half = axisToSplit.size()/2;
+	std::vector<std::pair<double, int>> split_lo(axisToSplit.begin(), axisToSplit.begin() + half);
+	std::vector<std::pair<double, int>> split_hi(axisToSplit.begin() + half, axisToSplit.end());
+	for(std::pair<double, int> element:split_lo){
+		int index = element.second;
+		left.insert(std::make_pair(index, v.find(index)->second));
+	}
+	for(std::pair<double, int> element:split_hi){
+		int index = element.second;
+		right.insert(std::make_pair(index, v.find(index)->second));
+	}
+	result->left = recursiveBuild(left);
+	// cout << "result left:" << result->left << endl;
+	result->right = recursiveBuild(right);
+	// cout << "result right:" << result->right << endl;
+	return result;
+}
+
+void Trimesh::Init(){
+	unordered_map<int, glm::dvec3> map;
+	for(int i = 0; i < faces.size(); i ++) {
+		glm::dvec3 vec = faces[i]->getBoundingBox().getCentroid();
+		auto pair = std::make_pair(i, vec);
+		map.insert(pair);
+	}
+	root = recursiveBuild(map);
 }
 
 // Intersect ray r with the triangle abc.  If it hits returns true,

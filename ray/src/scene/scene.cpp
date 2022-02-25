@@ -121,9 +121,9 @@ bool Scene::intersect(ray& r, isect& i) const {
 	while(!s.empty()) {
 		BVH* curr = s[s.size() - 1];
 		s.pop_back();
-		cout << "curr: " << curr << endl;
-		cout << "curr.left : " << curr->left << endl;
-		cout << "curr.right : " << curr->right  << endl;
+		// cout << "curr: " << curr << endl;
+		// cout << "curr.left : " << curr->left << endl;
+		// cout << "curr.right : " << curr->right  << endl;
 		if(curr->bounds.intersect(r, tmin, tmax)){
 			if(curr->isLeaf){
 				isect cur;

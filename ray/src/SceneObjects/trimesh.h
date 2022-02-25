@@ -1,6 +1,7 @@
 #ifndef TRIMESH_H__
 #define TRIMESH_H__
 
+#include <unordered_map>
 #include <list>
 #include <memory>
 #include <vector>
@@ -9,9 +10,15 @@
 #include "../scene/material.h"
 #include "../scene/ray.h"
 #include "../scene/scene.h"
+#include "../bvh.h"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/geometric.hpp>
+#include <glm/mat3x3.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/matrix.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 class TrimeshFace;
 
@@ -29,6 +36,7 @@ class Trimesh : public MaterialSceneObject {
 	BoundingBox localBounds;
 
 public:
+
 	Trimesh(Scene *scene, Material *mat, TransformNode *transform)
 	        : MaterialSceneObject(scene, mat),
 	          displayListWithMaterials(0),
@@ -53,6 +61,9 @@ public:
 	const char *doubleCheck();
 
 	void generateNormals();
+	BVH* recursiveBuild(unordered_map<int, glm::dvec3> map);
+	void Init();
+	BVH* root;
 
 	bool hasBoundingBoxCapability() const { return true; }
 
@@ -72,6 +83,7 @@ public:
 			        glm::min(localbounds.getMin(), *viter));
 		}
 		localBounds = localbounds;
+		Init();
 		return localbounds;
 	}
 
