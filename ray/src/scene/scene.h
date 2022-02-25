@@ -20,7 +20,9 @@
 #include "camera.h"
 #include "material.h"
 #include "ray.h"
+#include "../bvh.h"
 
+#include <unordered_map>
 #include <glm/geometric.hpp>
 #include <glm/mat3x3.hpp>
 #include <glm/mat4x4.hpp>
@@ -29,6 +31,7 @@
 #include <glm/vec4.hpp>
 
 using std::unique_ptr;
+using namespace std;
 
 class Light;
 class Scene;
@@ -168,7 +171,6 @@ public:
 	// For debugging purposes, draws using OpenGL
 	void glDraw(int quality, bool actualMaterials,
 	            bool actualTextures) const;
-
 	// The defult does nothing; this is here because it is not required
 	// that you implement this function if you create your own scene
 	// objects.
@@ -230,15 +232,17 @@ public:
 
 	void add(Geometry* obj);
 	void add(Light* light);
+	void Init();
 
 	bool intersect(ray& r, isect& i) const;
-
+	BVH* recursiveBuild(unordered_map<int, glm::dvec3> map);
 	auto beginLights() const { return lights.begin(); }
 	auto endLights() const { return lights.end(); }
 	const auto& getAllLights() const { return lights; }
 
 	auto beginObjects() const { return objects.cbegin(); }
 	auto endObjects() const { return objects.cend(); }
+	const auto& getAllObjs() const { return objects; }
 
 	const Camera& getCamera() const { return camera; }
 	Camera& getCamera() { return camera; }
@@ -268,6 +272,9 @@ public:
 private:
 	std::vector<std::unique_ptr<Geometry>> objects;
 	std::vector<std::unique_ptr<Light>> lights;
+	std::vector<int> nonboundedObj;
+	std::vector<int> boundedObj;
+	BVH* root;
 	Camera camera;
 
 	// This is the total amount of ambient light in the scene
