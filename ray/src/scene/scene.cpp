@@ -116,15 +116,41 @@ bool Scene::intersect(ray& r, isect& i) const {
 	double tmin = 0.0;
 	double tmax = 0.0;
 	bool have_one = false;
-	for(const auto& obj : objects) {
-		isect cur;
-		if( obj->intersect(r, cur) ) {
-			if(!have_one || (cur.getT() < i.getT())) {
-				i = cur;
-				have_one = true;
+	vector<BVH*> s;
+	s.push_back(root);
+	while(!s.empty()) {
+		BVH* curr = s[s.size() - 1];
+		s.pop_back();
+		cout << "curr: " << curr << endl;
+		cout << "curr.left : " << curr->left << endl;
+		cout << "curr.right : " << curr->right  << endl;
+		if(curr->bounds.intersect(r, tmin, tmax)){
+			if(curr->isLeaf){
+				isect cur;
+				if(objects[curr->index]->intersect(r, cur)){
+					if(!have_one || (cur.getT() < i.getT())){
+						i = cur;
+						have_one = true;
+					}
+				}
+				continue;
 			}
+
+			if(curr->left != nullptr)
+				s.push_back(curr->left);
+			if(curr->right != nullptr)
+				s.push_back(curr->right);
 		}
 	}
+	// for(const auto& obj : objects) {
+	// 	isect cur;
+	// 	if( obj->intersect(r, cur) ) {
+	// 		if(!have_one || (cur.getT() < i.getT())) {
+	// 			i = cur;
+	// 			have_one = true;
+	// 		}
+	// 	}
+	// }
 	if(!have_one)
 		i.setT(1000.0);
 	// if debugging,
@@ -155,6 +181,7 @@ int findLongestAxis(unordered_map<int, glm::dvec3> v) {
 BVH* Scene::recursiveBuild(unordered_map<int, glm::dvec3> map) {
 	auto v = map;
 	auto result = new BVH(); 
+	// cout << "constructed result:" << result << endl;
 	int longest = findLongestAxis(v);
 	vector<std::pair<double, int>> axisToSplit;
 	unordered_map<int, glm::dvec3> left;
@@ -187,7 +214,9 @@ BVH* Scene::recursiveBuild(unordered_map<int, glm::dvec3> map) {
 		right.insert(std::make_pair(index, v.find(index)->second));;
 	}
 	result->left = recursiveBuild(left);
+	// cout << "result left:" << result->left << endl;
 	result->right = recursiveBuild(right);
+	// cout << "result right:" << result->right << endl;
 	return result;
 }
 

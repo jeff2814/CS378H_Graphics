@@ -265,7 +265,7 @@ bool RayTracer::loadScene(const char* fn)
 		return false;
 	}
 
-	// scene->Init();
+	scene->Init();
 
 	if (!sceneLoaded())
 		return false;
