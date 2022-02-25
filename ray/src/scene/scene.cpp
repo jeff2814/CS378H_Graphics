@@ -1,5 +1,5 @@
 #include <cmath>
-
+#include <unordered_map>
 #include "scene.h"
 #include "light.h"
 #include "kdTree.h"
@@ -133,6 +133,78 @@ bool Scene::intersect(ray& r, isect& i) const {
 		addToIntersectCache(std::make_pair(new ray(r), new isect(i)));
 	}
 	return have_one;
+}
+
+int findLongestAxis(unordered_map<int, glm::dvec3> v) {
+	double zmin, zmax, xmin, xmax, ymin, ymax;
+	for(std::pair<int, glm::dvec3> element: v){
+		auto currx = element.second[0];
+		auto curry = element.second[1];
+		auto currz = element.second[2];
+		zmin = std::min(zmin, currz);
+		zmax = std::max(zmax, currz);
+		ymin = std::min(ymin, curry);
+		ymax = std::max(ymax, curry);
+		xmin = std::min(xmin, currx);
+		xmax = std::max(xmax,currx);
+	}
+	auto max =  std::max(xmax-xmin, std::max(ymax - ymin, zmax - zmin));
+	return (max == zmax - zmin) ? 2 : (max == ymax - ymin) ? 1 : 0;
+}
+
+BVH* Scene::recursiveBuild(unordered_map<int, glm::dvec3> map) {
+	auto v = map;
+	auto result = new BVH(); 
+	int longest = findLongestAxis(v);
+	vector<std::pair<double, int>> axisToSplit;
+	unordered_map<int, glm::dvec3> left;
+	unordered_map<int, glm::dvec3> right;
+	for(std::pair<int, glm::dvec3> element: v){
+		axisToSplit.push_back(make_pair(element.second[longest], element.first));
+		result->bounds.merge(objects[element.first]->getBoundingBox());
+	}
+	if( v.size() == 0) {
+		cout << "map null reference or empty map" << endl;
+		assert(0);
+	}
+	if(v.size() == 1){
+		result->isLeaf = true;
+		for(std::pair<int, glm::dvec3> element:v){
+			result->index = element.first;
+		}
+		return result;
+	}
+	std::sort(axisToSplit.begin(), axisToSplit.end());
+	int half = axisToSplit.size()/2;
+	std::vector<std::pair<double, int>> split_lo(axisToSplit.begin(), axisToSplit.begin() + half);
+	std::vector<std::pair<double, int>> split_hi(axisToSplit.begin() + half, axisToSplit.end());
+	for(std::pair<double, int> element:split_lo){
+		auto index = element.second;
+		left.insert(std::make_pair(index, v.find(index)->second));
+	}
+	for(std::pair<double, int> element:split_hi){
+		auto index = element.second;
+		right.insert(std::make_pair(index, v.find(index)->second));;
+	}
+	result->left = recursiveBuild(left);
+	result->right = recursiveBuild(right);
+	return result;
+}
+
+void Scene::Init(){
+	for( int i = 0; i < objects.size(); i++ ) {
+		if( (objects[i])->hasBoundingBoxCapability() ){
+			boundedObj.push_back(i);
+		}
+		else{
+			nonboundedObj.push_back(i);
+		}
+	}
+	unordered_map<int, glm::dvec3> data;
+	for(int i = 0; i < boundedObj.size(); i ++) {
+		data.emplace(boundedObj[i], objects[boundedObj[i]]->getBoundingBox().getCentroid());
+	}
+	root = recursiveBuild(data);
 }
 
 TextureMap* Scene::getTexture(string name) {
