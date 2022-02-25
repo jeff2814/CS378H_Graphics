@@ -99,7 +99,7 @@ glm::dvec3 PointLight::shadowAttenuation(const ray& r, const glm::dvec3& p) cons
 	// You should implement shadow-handling code here.
 	auto res = glm::dvec3(1.0, 1.0, 1.0);
 	isect i;
-	auto makeshift(ray(r.getPosition(), -r.getDirection(), r.getAtten(), ray::RayType::SHADOW));
+	auto makeshift(ray(r.getPosition(), r.getDirection(), r.getAtten(), ray::RayType::SHADOW));
 	if (scene->intersect(const_cast<ray&>(makeshift), i)) {
 		
 		if(debugMode) {
@@ -114,8 +114,13 @@ glm::dvec3 PointLight::shadowAttenuation(const ray& r, const glm::dvec3& p) cons
 		auto second(ray(newPoint, d, r.getAtten(), ray::RayType::SHADOW));
 		isect i2;
 		if (scene->intersect(second, i2)) {
-			auto distance = i.getT();
-			glm::dvec3 mult(std::pow(kt[0], distance), std::pow(kt[1], distance), std::pow(kt[2], distance));
+			auto distance = i2.getT();
+			if(debugMode) {
+				cout << "second intersection" << endl;
+				cout << "i2 T: " << i2.getT() << endl;
+			}
+			auto m2 = i2.getMaterial();
+			glm::dvec3 mult(std::pow(m2.kt(i2)[0], distance), std::pow(m2.kt(i2)[1], distance), std::pow(m2.kt(i2)[2], distance));
 			res *= mult;
 		}
 		if(debugMode) {
