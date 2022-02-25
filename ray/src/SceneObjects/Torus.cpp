@@ -4,8 +4,7 @@
 #include "Quartic/quartic.h"
 
 using namespace std;
-
-//http://blog.marcinchwedczuk.pl/ray-tracing-torus
+//https://www.cl.cam.ac.uk/teaching/1999/AGraphHCI/SMAG/node2.html
 //thanks to https://github.com/sasamil/Quartic.git (Sasa Milenkovic) for quartic root solver, see LICENSE and README
 unsigned int solveP3(double *x,double a,double b,double c) {
 	double a2 = a*a;

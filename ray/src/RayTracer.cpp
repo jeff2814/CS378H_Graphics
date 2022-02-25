@@ -54,12 +54,19 @@ glm::dvec3 RayTracer::trace(double x, double y)
 	int scale = 1;
 	int aa_thresh = 0;
 	int counter = 0;
+
+	auto curr = glm::dvec3(0, 0, 0);
+	auto prev = glm::dvec3(0, 0, 0);
+	bool skip = false;
+
 	if(traceUI->aaSwitch())
 	{
 		scale = traceUI->getSuperSamples();
 		aa_thresh = traceUI->getAaThreshold();	
 	}
 	for(int i = 0 ; i < scale; i ++)
+	{
+		skip = false;
 		for(int j = 0; j < scale; j ++)
 		{
 			auto thresh = pois(generator);
@@ -71,12 +78,18 @@ glm::dvec3 RayTracer::trace(double x, double y)
 				ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1), ray::VISIBILITY);
 				scene->getCamera().rayThrough(x + aa_thresh/2 - i*len,y + aa_thresh/2 - j*len,r);
 				double dummy;
+				if(skip) 
+					continue;
 				glm::dvec3 temp = traceRay(r, glm::dvec3(1.0,1.0,1.0), 0, dummy);
+				curr = temp;
+				skip = prev == curr;
+				prev = curr;
 				temp = glm::clamp(temp, 0.0, 1.0);
 				ret += temp;
 				counter++;
 			}
 		}
+	}
 	ret *= 1.0/counter; //FIXME? I'm not sure if this is actually averaging out the rays/anti-aliasing them
 	
 	return ret;
