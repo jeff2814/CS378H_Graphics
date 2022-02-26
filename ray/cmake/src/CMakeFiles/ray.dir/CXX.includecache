@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/allen/projects/cs378h/CS378H_Graphics/ray/src/parser/ParserException.h
+string
+-
+
+/home/allen/projects/cs378h/CS378H_Graphics/ray/src/parser/Token.cpp
+stdio.h
+-
+Token.h
+/home/allen/projects/cs378h/CS378H_Graphics/ray/src/parser/Token.h
+map
+-
+sstream
+-
+iostream
+-
+
+/home/allen/projects/cs378h/CS378H_Graphics/ray/src/parser/Token.h
+string
+-
+iostream
+-
+map
+-
+ParserException.h
+/home/allen/projects/cs378h/CS378H_Graphics/ray/src/parser/ParserException.h
+

@@ -13,6 +13,7 @@
 #include "ui/TraceUI.h"
 #include <cmath>
 #include <algorithm>
+#include <random>
 #include <glm/glm.hpp>
 #include <glm/gtx/io.hpp>
 #include <string.h> // for memset
@@ -45,27 +46,50 @@ glm::dvec3 RayTracer::trace(double x, double y)
 		scene->clearIntersectCache();		
 	}
 
+	double param = 128.0;
+	default_random_engine generator;
+	poisson_distribution<int> pois(param);
+
 	auto ret = glm::dvec3(0, 0, 0);
 	int scale = 1;
 	int aa_thresh = 0;
 	int counter = 0;
+
+	auto curr = glm::dvec3(0, 0, 0);
+	auto prev = glm::dvec3(0, 0, 0);
+	bool skip = false;
+
 	if(traceUI->aaSwitch())
 	{
 		scale = traceUI->getSuperSamples();
 		aa_thresh = traceUI->getAaThreshold();	
 	}
 	for(int i = 0 ; i < scale; i ++)
+	{
+		skip = false;
 		for(int j = 0; j < scale; j ++)
 		{
-			int len = aa_thresh/scale;
-			ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1), ray::VISIBILITY);
-			scene->getCamera().rayThrough(x + aa_thresh/2 - i*len,y + aa_thresh/2 - j*len,r);
-			double dummy;
-			glm::dvec3 temp = traceRay(r, glm::dvec3(1.0,1.0,1.0), 0, dummy);
-			temp = glm::clamp(temp, 0.0, 1.0);
-			ret += temp;
-			counter++;
+			auto thresh = pois(generator);
+			if(debugMode)
+				cout << "Stochastic Param: " << param << endl;
+			if(thresh < param - scale)
+			{
+				int len = aa_thresh/scale;
+				ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1), ray::VISIBILITY);
+				scene->getCamera().rayThrough(x + aa_thresh/2 - i*len,y + aa_thresh/2 - j*len,r);
+				double dummy;
+				if(skip) 
+					continue;
+				glm::dvec3 temp = traceRay(r, glm::dvec3(1.0,1.0,1.0), 0, dummy);
+				curr = temp;
+				skip = prev == curr;
+				prev = curr;
+				temp = glm::clamp(temp, 0.0, 1.0);
+				ret += temp;
+				counter++;
+			}
 		}
+	}
 	ret *= 1.0/counter; //FIXME? I'm not sure if this is actually averaging out the rays/anti-aliasing them
 	
 	return ret;

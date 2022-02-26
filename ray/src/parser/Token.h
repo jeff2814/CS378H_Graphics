@@ -55,6 +55,7 @@ enum SYMBOL {
   SQUARE,
   CYLINDER,
   CONE,
+  TORUS,
   TRIMESH,  
 
   POSITION, VIEWDIR,		// keywords affecting primitives
@@ -66,6 +67,8 @@ enum SYMBOL {
   HEIGHT,
   BOTTOM_RADIUS,
   TOP_RADIUS,
+  INNER_RADIUS,
+  OUTER_RADIUS,
   QUATERNIAN,               // ???
 
   POLYPOINTS, NORMALS,			// keywords affecting polygons

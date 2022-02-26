@@ -1,20 +1,44 @@
 Names: Jeffery Wu, Allen Zheng
 
+Late days used: 2 (3 total)
+
+Milestone 1 Fixes:
+----------------------------
+    - Shadows were originally incomplete, such as on easy1.ray. We believe what we have submitted now is fully correct.
+
 Known Issues: 
-    - easy1.ray has no shadows projecting onto the trimesh surface, some other decisions due to i
-    - anti-aliasing is slow due to the method we chose
+    - From Milestone 1, we didn't implement our anti-aliasing in aaImage(), but rather directly in trace()
+    of RayTracer.cpp. This works, but we apologize for not clarifying that if we needed to. 
+    - BVH is actually slower than without, conceptually we understood (see below). Within the timeframe of the assignment, we ran into many implementation obstacles, and did not want to take another late day. The implementation is correct, however is currently really inefficient due to some last minute quick-fixes.
+    - (EC) Torus object not traced on the GUI
 
-Milestone Requirements:
+Milestone 2 Requirements:
 -----------------------------
-Triangle-Ray Intersection: Implemented using barycentric coordinates in intersectLocal() of trimesh.cpp
-Interpolation: Per-vertex (if present) normals & materials interpolated with above coordinates in the same function.
+TexMap/CubeMap: standard implementations as discussed in class, see material.cpp, CubeMap.cpp
 
-Illumination Model: To our knowledge, should support all types of materials e.g. Emissive, Transmissive, etc.
-    Shading: Most code present in shade() of material.cpp, following equations discussed in class 
-    Attenuation: Shadow/distance logic written in light.cpp, applied to shade logic described above
-        Implementation Decision: Naive handling of overlapping transmissive objects.
-    Refract/Reflect: Logic located in recursive TraceRay() function, also uses attenuation a bit.
+Acceleration Structure: BVH w/ top down insertion: see bvh.h, scene.cpp, trimesh.cpp
+    - High level design: Tree nodes storing Bounding Boxes, object/face index, pointers. Both objects and TrimeshFaces have separate BVHs; initially we tried to combine them with polymorphism, but ran into dependency issues.
+    - Build (Init()): Top-down design, split by longest axis logically represented by a vector at each step of the recursive build (so that a search was not required each time).
+    - Traversal: Standard post-order traversal with LIFO.
 
-Anti-Aliasing: Uses basic supersampling method described in class (n x n) grid.
+
+Extra Credit: 
+----------------------------
+(Anti-aliasing code still in trace() function of RayTracer.cpp)
+
+Stochastic Supersampling: Uses a DRV with Poisson Distribution to determine a threshold for whether or not supersampling should occur. The threshold is also dynamic on the scale of super-sample. Improves performance depending on the value of this threshold; of course the choice cannot be too aggressive or no anti-aliasing will occur. With just this consideration alone, on cone.ray, performance improves by approximately 55% for default settings.
+
+Adaptive Supersampling: Considers within a super-sample whether the past few traces have been the same (which indicates no aliasing). If so, the super-sampling logic will "adapt" to skip tracing unneeded rays. Does not improve performance as much as our Stochastic consideration but still by around 10-20%. An improved policy that has a better definition on where "jaggies" occur could probably do better.
+
+
+Extra Geometry: Torus (SceneObjects/Torus.cpp)
+IMPORTANT: FOR THE NEXT EC, BORROWED QUARTIC SOLVER CODE FROM https://github.com/sasamil/Quartic.git (Sasa Milenkovic) LICENSE indicates fair use given its inclusion.
+    - Reasoning: We originally tried to reason this (solving quartic) ourselves, but further down the line, we felt that deriving it was not a top concern considering the time commitment it was causing.
+
+https://www.cl.cam.ac.uk/teaching/1999/AGraphHCI/SMAG/node2.html
+The above link was our source for some of the Torus equations in the code. We reason that these equations and our subsequent derivations are correct; conceptually there are six possible ways to intersect the Torus from a maximum of four points (real roots of the above solved quartic). We updated the parser and build to recognize the Torus object. However, admittedly torus.ray does not trace anything, and we suspect it may be due to incorrect logic in normalization. We concede that we were unable to fix this before turning it in.
+
+Extra Scene: torus.ray
+This scene is meant to depict our new object, but does not trace due to above concerns. With a properly working torus code, it should depict a delectable donut, perhaps of the maple-glazed flavor.
 
 
