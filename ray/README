@@ -9,7 +9,7 @@ Milestone 1 Fixes:
 Known Issues: 
     - From Milestone 1, we didn't implement our anti-aliasing in aaImage(), but rather directly in trace()
     of RayTracer.cpp. This works, but we apologize for not clarifying that if we needed to. 
-    - BVH is actually slower than without, conceptually we understood (see below). Within the timeframe of the assignment, we ran into many implementation obstacles, and did not want to take another late day. The implementation is correct, however is currently really inefficient due to some last minute quick-fixes.
+    - BVH is not as fast as expected, conceptually we understood (see below). Within the timeframe of the assignment, we ran into many implementation obstacles, and did not want to take another late day. The implementation is correct, however is currently not as efficient due to some last minute quick-fixes.
     - (EC) Torus object not traced on the GUI
 
 Milestone 2 Requirements:
