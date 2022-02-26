@@ -1,15 +1,25 @@
 Names: Jeffery Wu, Allen Zheng
 
+Late days used: 2 (3 total)
+
+Milestone 1 Fixes:
+----------------------------
+    - Shadows were originally incomplete, such as on easy1.ray. We believe what we have submitted now is fully correct.
+
 Known Issues: 
     - From Milestone 1, we didn't implement our anti-aliasing in aaImage(), but rather directly in trace()
     of RayTracer.cpp. This works, but we apologize for not clarifying that if we needed to. 
+    - BVH is actually slower than without, conceptually we understood (see below). Within the timeframe of the assignment, we ran into many implementation obstacles, and did not want to take another late day. The implementation is correct, however is currently really inefficient due to some last minute quick-fixes.
     - (EC) Torus object not traced on the GUI
 
 Milestone 2 Requirements:
 -----------------------------
 TexMap/CubeMap: standard implementations as discussed in class, see material.cpp, CubeMap.cpp
 
-Acceleration Structure: BVH w/ top down insertion.
+Acceleration Structure: BVH w/ top down insertion: see bvh.h, scene.cpp, trimesh.cpp
+    - High level design: Tree nodes storing Bounding Boxes, object/face index, pointers. Both objects and TrimeshFaces have separate BVHs; initially we tried to combine them with polymorphism, but ran into dependency issues.
+    - Build (Init()): Top-down design, split by longest axis logically represented by a vector at each step of the recursive build (so that a search was not required each time).
+    - Traversal: Standard post-order traversal with LIFO.
 
 
 Extra Credit: 
@@ -18,7 +28,7 @@ Extra Credit:
 
 Stochastic Supersampling: Uses a DRV with Poisson Distribution to determine a threshold for whether or not supersampling should occur. The threshold is also dynamic on the scale of super-sample. Improves performance depending on the value of this threshold; of course the choice cannot be too aggressive or no anti-aliasing will occur. With just this consideration alone, on cone.ray, performance improves by approximately 55% for default settings.
 
-Adaptive Supersampling: Considers within a super-sample whether the past few traces have been the same (which indicates no aliasing). If so, the super-sampling logic will "adapt" to skip tracing unneeded rays. Does not improve performance as much as our Stochastic consideration but still by around 10-20%. An improved policy (that has a better definition on where "jaggies" occur) could probably do better.
+Adaptive Supersampling: Considers within a super-sample whether the past few traces have been the same (which indicates no aliasing). If so, the super-sampling logic will "adapt" to skip tracing unneeded rays. Does not improve performance as much as our Stochastic consideration but still by around 10-20%. An improved policy that has a better definition on where "jaggies" occur could probably do better.
 
 
 Extra Geometry: Torus (SceneObjects/Torus.cpp)
