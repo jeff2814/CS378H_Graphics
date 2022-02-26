@@ -2,6 +2,7 @@
 
 #include "scene/bbox.h"
 #include <iostream>
+#include <glm/vec3.hpp>
 
 class BVH{
     public:

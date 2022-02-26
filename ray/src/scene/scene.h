@@ -235,7 +235,7 @@ public:
 	void Init();
 
 	bool intersect(ray& r, isect& i) const;
-	BVH* recursiveBuild(unordered_map<int, glm::dvec3> map);
+	BVH* recursiveBuild(unordered_map<int, glm::dvec3> map, glm::dvec3 axes);
 	auto beginLights() const { return lights.begin(); }
 	auto endLights() const { return lights.end(); }
 	const auto& getAllLights() const { return lights; }

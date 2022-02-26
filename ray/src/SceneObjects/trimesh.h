@@ -61,7 +61,7 @@ public:
 	const char *doubleCheck();
 
 	void generateNormals();
-	BVH* recursiveBuild(unordered_map<int, glm::dvec3> map);
+	BVH* recursiveBuild(unordered_map<int, glm::dvec3> map, glm::dvec3 axes);
 	void Init();
 	BVH* root;
 

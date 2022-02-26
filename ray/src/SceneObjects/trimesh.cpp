@@ -124,7 +124,7 @@ bool TrimeshFace::intersect(ray& r, isect& i) const
 	return intersectLocal(r, i);
 }
 
-int findLongestAxis2(unordered_map<int, glm::dvec3> v) {
+glm::dvec3 findLongestAxis2(unordered_map<int, glm::dvec3> v) {
 	double zmin, zmax, xmin, xmax, ymin, ymax;
 	for(std::pair<int, glm::dvec3> element: v){
 		auto currx = element.second[0];
@@ -137,15 +137,16 @@ int findLongestAxis2(unordered_map<int, glm::dvec3> v) {
 		xmin = std::min(xmin, currx);
 		xmax = std::max(xmax,currx);
 	}
-	auto max =  std::max(xmax-xmin, std::max(ymax - ymin, zmax - zmin));
-	return (max == zmax - zmin) ? 2 : (max == ymax - ymin) ? 1 : 0;
+	return glm::dvec3(xmax - xmin, ymax - ymin, zmax - zmin);
 }
 
-BVH* Trimesh::recursiveBuild(unordered_map<int, glm::dvec3> map) {
+BVH* Trimesh::recursiveBuild(unordered_map<int, glm::dvec3> map, glm::dvec3 axes) {
 	auto v = map;
 	auto result = new BVH(); 
 	// cout << "constructed result:" << result << endl;
-	int longest = findLongestAxis2(v);
+	int temp = std::max(axes[0], std::max(axes[1], axes[2]));
+	int longest = (temp == axes[0]) ? 0 : (temp == axes[1]) ? 1:2;
+	axes[longest] = axes[longest] / 2;
 	vector<std::pair<double, int>> axisToSplit;
 	unordered_map<int, glm::dvec3> left;
 	unordered_map<int, glm::dvec3> right;
@@ -176,9 +177,9 @@ BVH* Trimesh::recursiveBuild(unordered_map<int, glm::dvec3> map) {
 		int index = element.second;
 		right.insert(std::make_pair(index, v.find(index)->second));
 	}
-	result->left = recursiveBuild(left);
+	result->left = recursiveBuild(left, axes);
 	// cout << "result left:" << result->left << endl;
-	result->right = recursiveBuild(right);
+	result->right = recursiveBuild(right, axes);
 	// cout << "result right:" << result->right << endl;
 	return result;
 }
@@ -190,7 +191,8 @@ void Trimesh::Init(){
 		auto pair = std::make_pair(i, vec);
 		map.insert(pair);
 	}
-	root = recursiveBuild(map);
+	glm::dvec3 axes = findLongestAxis2(map);
+	root = recursiveBuild(map, axes);
 }
 
 // Intersect ray r with the triangle abc.  If it hits returns true,
