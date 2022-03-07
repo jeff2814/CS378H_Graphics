@@ -21,6 +21,7 @@ export class MengerSponge implements IMengerSponge {
 
   // TODO: sponge data structures
   level:number;
+  dirty:boolean;
 
   vertices:Vec4[];
   faces:Vec3[];
@@ -62,28 +63,28 @@ export class MengerSponge implements IMengerSponge {
     this.normals = [];
     this.setLevel(level);
 	  // TODO: other initialization
-
-
-    this.positions_array = new Float32Array(flattenListOfVec(this.vertices));
-    this.face_array = new Uint32Array(flattenListOfVec(this.faces));
-    this.normals_array = new Float32Array(flattenListOfVec(this.normals));
   }
 
   /**
    * Returns true if the sponge has changed.
    */
   public isDirty(): boolean {
-       return true;
+       return this.dirty;
   }
 
   public setClean(): void {
+      this.dirty = false;
   }
   
-  public setLevel(level: number)
+  public setLevel(lev: number)
   {
 	  // TODO: initialize the cube
-    this.level = level;
-    this.recursiveBuild(level, -.5, -.5, -.5, 1);
+    this.level = lev;
+    this.dirty = true;
+    this.recursiveBuild(this.level, -.5, -.5, -.5, 1);
+    this.positions_array = new Float32Array(flattenListOfVec(this.vertices));
+    this.face_array = new Uint32Array(flattenListOfVec(this.faces));
+    this.normals_array = new Float32Array(flattenListOfVec(this.normals));
   }
 
 
