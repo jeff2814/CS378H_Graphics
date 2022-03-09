@@ -163,6 +163,8 @@ export class GUI implements IGUI {
 
     var dx = mouse.screenX-this.prevX;
     var dy = mouse.screenY-this.prevY;
+    if(dx == 0 || dy == 0)
+      return;
     this.prevX = mouse.screenX;
     this.prevY = mouse.screenY;
     var vec = this.screenToWorld(dx, -dy);
@@ -173,7 +175,7 @@ export class GUI implements IGUI {
       console.log("Converted Vec X:" + vec.at(0) + "Y: " + vec.at(1) + "Z: " + vec.at(2) + "\n");
     }
     //this.camera.orbitTarget(vec, GUI.rotationSpeed);
-    this.camera.rotate(Vec3.cross(vec, this.camera.forward()), GUI.rotationSpeed, this.camera.target());
+    this.camera.rotate(Vec3.cross(vec, this.camera.forward()), GUI.rotationSpeed);
   }
 
   /**
@@ -217,7 +219,7 @@ export class GUI implements IGUI {
         break;
       }
       case "KeyA": {
-        this.camera.offset(this.camera.right(), -GUI.panSpeed, false);
+        this.camera.offset(this.camera.right(), -GUI.panSpeed, true);
         break;
       }
       case "KeyS": {
@@ -225,18 +227,18 @@ export class GUI implements IGUI {
         break;
       }
       case "KeyD": {
-        this.camera.offset(this.camera.right(), GUI.panSpeed, false);
+        this.camera.offset(this.camera.right(), GUI.panSpeed, true);
         break;
       }
       case "KeyR": {
         break;
       }
       case "ArrowLeft": {
-        this.camera.roll(GUI.rollSpeed, true)
+        this.camera.roll(GUI.rollSpeed, false)
         break;
       }
       case "ArrowRight": {
-        this.camera.roll(GUI.rollSpeed, false)
+        this.camera.roll(GUI.rollSpeed, true)
         break;
       }
       case "ArrowUp": {

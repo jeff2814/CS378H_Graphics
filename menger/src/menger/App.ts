@@ -12,6 +12,7 @@ import {
   floorVSText
 } from "./Shaders.js";
 import { Mat4, Vec4 } from "../lib/TSM.js";
+import { Floor } from "../lib/webglutils/Floor.js";
 
 export interface MengerAnimationTest {
   reset(): void;
@@ -50,6 +51,25 @@ export class MengerAnimation extends CanvasAnimation {
   private backgroundColor: Vec4 = new Vec4();
 
   // TODO: data structures for the floor
+  private floor: Floor = new Floor();
+
+  private floorVAO: WebGLVertexArrayObjectOES = -1;
+  private floorProgram: WebGLProgram = -1;
+
+  /* floor Buffers */
+  private floorPosBuffer: WebGLBuffer = -1;
+  private floorIndexBuffer: WebGLBuffer = -1;
+  private floorNormBuffer: WebGLBuffer = -1;
+
+  /* floor Attribute Locations */
+  private floorPosAttribLoc: GLint = -1;
+  private floorNormAttribLoc: GLint = -1;
+
+  /* floor Uniform Locations */
+  private floorWorldUniformLocation: WebGLUniformLocation = -1;
+  private floorViewUniformLocation: WebGLUniformLocation = -1;
+  private floorProjUniformLocation: WebGLUniformLocation = -1;
+  private floorLightUniformLocation: WebGLUniformLocation = -1;
 
 
   constructor(canvas: HTMLCanvasElement) {
@@ -91,7 +111,7 @@ export class MengerAnimation extends CanvasAnimation {
     this.mengerProgram = WebGLUtilities.createProgram(
       gl,
       defaultVSText,
-      defaultFSText
+      defaultFSText,
     );
     gl.useProgram(this.mengerProgram);
 
