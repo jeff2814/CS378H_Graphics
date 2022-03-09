@@ -51,7 +51,7 @@ export function cubeVertices(xmin: number, ymin: number, zmin: number, len: numb
           console.log("vec" + index + ": " + x + " " + y + " " + z + " " + "\n");
     }
   
-  //from these 8, construct cube in this order s.t. face indices can be [0, 1, 2], [3, 4, 5]
+  //from these 8, construct cube in this order s.t. face indices can be [2, 1, 0], [5, 4, 3]
 
   let ans:Vec4[] = [];
   //norm +x left face 5173
@@ -101,11 +101,11 @@ export function cubeVertices(xmin: number, ymin: number, zmin: number, len: numb
 
 export function faceHelper(offset: number): Vec3[] {
   let ans:Vec3[] = [];
-  // above verts are ordered in such a way that I can do 0, 1, 2, 3, 4, 5
+  // above verts are ordered in such a way that this can be generalized
   for(var face = 0; face < 6; face++)
   {
-    var v1 = new Vec3([offset, offset + 1, offset + 2]);
-    var v2 = new Vec3([offset + 3, offset + 4, offset + 5]);
+    var v1 = new Vec3([offset + 2, offset + 1, offset + 0]);
+    var v2 = new Vec3([offset + 5, offset + 4, offset + 3]);
     offset += 6;
     ans.push(v1);
     ans.push(v2);

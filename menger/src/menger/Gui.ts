@@ -2,6 +2,11 @@ import { Camera } from "../lib/webglutils/Camera.js";
 import { CanvasAnimation } from "../lib/webglutils/CanvasAnimation.js";
 import { MengerSponge } from "./MengerSponge.js";
 import { Mat4, Vec3 } from "../lib/TSM.js";
+import { faceHelper } from "./Utils.js";
+
+var debug = true;
+var initX = 0;
+var initY = 0;
 
 /**
  * Might be useful for designing any animation GUI
@@ -14,6 +19,8 @@ interface IGUI {
   dragEnd(me: MouseEvent): void;
   onKeydown(ke: KeyboardEvent): void;
 }
+
+
 
 /**
  * Handles Mouse and Button events along with
@@ -37,6 +44,23 @@ export class GUI implements IGUI {
   private sponge: MengerSponge;
   private animation: CanvasAnimation;
 
+  private printViewMat() : void
+  {
+    var m = this.viewMatrix();
+    console.log("View Matrix:\n");
+    for(var i = 0; i < 4; i++)
+      console.log("Row " + i + " :" + m.at(i) + ", " + m.at(4 + i) + ", " + m.at(8 + i) + ", " + m.at(12 + i) + "\n");
+  }
+
+  private screenToWorld(x: number, y: number):Vec3 
+  {
+    var m = this.viewMatrix();
+    // row 0: tangent, row 1: up
+    var _x = x*m.at(0) + y*m.at(1);
+    var _y = x*m.at(4) + y*m.at(5);
+    var _z = x*m.at(8) + y*m.at(9);
+    return new Vec3([_x, _y, _z]);
+  }
   /**
    *
    * @param canvas required to get the width and height of the canvas
@@ -117,6 +141,12 @@ export class GUI implements IGUI {
     this.dragging = true;
     this.prevX = mouse.screenX;
     this.prevY = mouse.screenY;
+
+    if(debug)
+    {
+      initX = this.prevX;
+      initY = this.prevY;
+    }
   }
 
   /**
@@ -128,7 +158,22 @@ export class GUI implements IGUI {
   public drag(mouse: MouseEvent): void {
 	  
 	  // TODO: Your code here for left and right mouse drag
-	  
+    if(this.dragging == false)
+      return;
+
+    var dx = mouse.screenX-this.prevX;
+    var dy = mouse.screenY-this.prevY;
+    this.prevX = mouse.screenX;
+    this.prevY = mouse.screenY;
+    var vec = this.screenToWorld(dx, -dy);
+    if(debug)
+    {
+      console.log("Vec X: " + dx + " Y: " + dy);
+      this.printViewMat();
+      console.log("Converted Vec X:" + vec.at(0) + "Y: " + vec.at(1) + "Z: " + vec.at(2) + "\n");
+    }
+    //this.camera.orbitTarget(vec, GUI.rotationSpeed);
+    this.camera.rotate(Vec3.cross(vec, this.camera.forward()), GUI.rotationSpeed, this.camera.target());
   }
 
   /**
@@ -136,6 +181,16 @@ export class GUI implements IGUI {
    * @param mouse
    */
   public dragEnd(mouse: MouseEvent): void {
+    if(debug)
+    {
+      var dx = mouse.screenX-initX;
+      var dy = mouse.screenY-initY;
+      console.log("Total Vec X: " + dx + " Y: " + dy);
+      this.printViewMat();
+      var vec = this.screenToWorld(dx, dy);
+      console.log("Converted Vec X:" + vec.at(0) + "Y: " + vec.at(1) + "Z: " + vec.at(2) + "\n");
+    }
+    this.drag(mouse);
     this.dragging = false;
     this.prevX = 0;
     this.prevY = 0;
@@ -158,39 +213,38 @@ export class GUI implements IGUI {
 
     switch (key.code) {
       case "KeyW": {
-
+        this.camera.offsetDist(-GUI.zoomSpeed);
         break;
       }
       case "KeyA": {
-
+        this.camera.offset(this.camera.right(), -GUI.panSpeed, false);
         break;
       }
       case "KeyS": {
-
+        this.camera.offsetDist(GUI.zoomSpeed);
         break;
       }
       case "KeyD": {
-
+        this.camera.offset(this.camera.right(), GUI.panSpeed, false);
         break;
       }
       case "KeyR": {
-
         break;
       }
       case "ArrowLeft": {
-
+        this.camera.roll(GUI.rollSpeed, true)
         break;
       }
       case "ArrowRight": {
-
+        this.camera.roll(GUI.rollSpeed, false)
         break;
       }
       case "ArrowUp": {
-
+        this.camera.offset(this.camera.up(), GUI.panSpeed, false);
         break;
       }
       case "ArrowDown": {
-
+        this.camera.offset(this.camera.up(), -GUI.panSpeed, false);
         break;
       }
       case "Digit1": {
@@ -207,6 +261,11 @@ export class GUI implements IGUI {
       }
       case "Digit4": {
         this.sponge.setLevel(4);
+        break;
+      }
+      //just for fun
+      case "Digit5": {
+        this.sponge.setLevel(5);
         break;
       }
       default: {

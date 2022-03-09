@@ -58,9 +58,6 @@ export class MengerSponge implements IMengerSponge {
   }
 
   constructor(level: number, ) {
-    this.vertices = [];
-    this.faces = [];
-    this.normals = [];
     this.setLevel(level);
 	  // TODO: other initialization
   }
@@ -81,9 +78,9 @@ export class MengerSponge implements IMengerSponge {
 	  // TODO: initialize the cube
     this.level = lev;
     this.dirty = true;
-    this.vertices = []
-    this.faces = []
-    this.normals = []
+    this.vertices = [];
+    this.faces = [];
+    this.normals = [];
     this.recursiveBuild(this.level, -.5, -.5, -.5, 1);
     this.positions_array = new Float32Array(flattenListOfVec(this.vertices));
     this.face_array = new Uint32Array(flattenListOfVec(this.faces));
