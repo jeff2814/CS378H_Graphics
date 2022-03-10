@@ -15,10 +15,10 @@ export class Floor implements MaterialObject {
     /* Set default position. */
     this.vertices = [
       new Vec4([0, this.floorY, 0, 1]),
-      new Vec4([1, 0, 0, 0]),
-      new Vec4([0, 0, 1, 0]),
-      new Vec4([-1, 0, 0, 0]),
-      new Vec4([0, 0, -1, 0])
+      new Vec4([1000, 0, 0, 0]),
+      new Vec4([0, 0, 1000, 0]),
+      new Vec4([-1000, 0, 0, 0]),
+      new Vec4([0, 0, -1000, 0])
     ];
     console.assert(this.vertices != null);
     console.assert(this.vertices.length === 5);
@@ -47,6 +47,7 @@ export class Floor implements MaterialObject {
 
     /* Set Normals. */
     this.norms = [
+      new Vec4([0.0, 1.0, 0.0, 0.0]),
       new Vec4([0.0, 1.0, 0.0, 0.0]),
       new Vec4([0.0, 1.0, 0.0, 0.0]),
       new Vec4([0.0, 1.0, 0.0, 0.0]),
@@ -91,8 +92,8 @@ export class Floor implements MaterialObject {
   }
 
   public uMatrix(): Mat4 {
-    throw new Error("Floor::uMatrix() incomplete method");
-    return new Mat4();
+    //throw new Error("Floor::uMatrix() incomplete method");
+    return new Mat4().setIdentity();
   }
 
   public scale(s: GLfloat): void {

@@ -1,7 +1,7 @@
 import { Camera } from "../lib/webglutils/Camera.js";
 import { CanvasAnimation } from "../lib/webglutils/CanvasAnimation.js";
 import { MengerSponge } from "./MengerSponge.js";
-import { Mat4, Vec3 } from "../lib/TSM.js";
+import { Mat4, Vec2, Vec3, Vec4 } from "../lib/TSM.js";
 import { faceHelper } from "./Utils.js";
 
 var debug = true;
@@ -52,14 +52,23 @@ export class GUI implements IGUI {
       console.log("Row " + i + " :" + m.at(i) + ", " + m.at(4 + i) + ", " + m.at(8 + i) + ", " + m.at(12 + i) + "\n");
   }
 
-  private screenToWorld(x: number, y: number):Vec3 
+  private screenToWorld(x: number, y: number):Vec4 
   {
+    let ndcx = -x/this.width * 2;
+    let ndcy = y/this.height * 2 ;
+    if(debug)
+    {
+      console.log("Prev: x " + x + " y " + y);
+      console.log("Dims: x " + this.width + " y " + this.height);
+      console.log("NDC: x " + ndcx + " y " + ndcy);
+    }
+
+    let vec = new Vec4([ndcx, ndcy, 0, 0]);
+    var p = this.projMatrix();
+    var v = p.inverse().multiplyVec4(vec);
     var m = this.viewMatrix();
-    // row 0: tangent, row 1: up
-    var _x = x*m.at(0) + y*m.at(1);
-    var _y = x*m.at(4) + y*m.at(5);
-    var _z = x*m.at(8) + y*m.at(9);
-    return new Vec3([_x, _y, _z]);
+    var _v = m.transpose().multiplyVec4(v);
+    return _v;
   }
   /**
    *
@@ -167,15 +176,15 @@ export class GUI implements IGUI {
       return;
     this.prevX = mouse.screenX;
     this.prevY = mouse.screenY;
-    var vec = this.screenToWorld(dx, -dy);
+
+    var vec = this.screenToWorld(dx, dy);
     if(debug)
     {
       console.log("Vec X: " + dx + " Y: " + dy);
       this.printViewMat();
       console.log("Converted Vec X:" + vec.at(0) + "Y: " + vec.at(1) + "Z: " + vec.at(2) + "\n");
     }
-    //this.camera.orbitTarget(vec, GUI.rotationSpeed);
-    this.camera.rotate(Vec3.cross(vec, this.camera.forward()), GUI.rotationSpeed);
+    this.camera.rotate(Vec3.cross(new Vec3([vec.x, vec.y, vec.z]), this.camera.forward().negate()), GUI.rotationSpeed);
   }
 
   /**

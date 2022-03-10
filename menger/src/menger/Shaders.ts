@@ -86,9 +86,11 @@ export let floorFSText = `
     varying vec3 vert;  
 
     void main () {
-        highp int x = int(floor(vert[0]));
-        highp int z = int(floor(vert[2]));
-        gl_FragColor = ((x + z)/2 * 2 == x + z) ? vec4(1.0, 1.0, 1.0, 1.0): vec4(0.0, 0.0, 0.0, 1.0);
+        float x_plus_z = floor(vert[0]/5.0) + floor(vert[2]/5.0);
+        vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
+        vec4 black = vec4(0.0, 0.0, 0.0, 1.0);
+
+        gl_FragColor = (mod(x_plus_z, 2.0) == 0.0) ? black:white;
         float kd = dot(normal, normalize(lightDir));
         gl_FragColor *= (kd > 0.0) ? kd : 0.0;
         gl_FragColor[3] = 1.0;

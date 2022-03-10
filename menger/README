@@ -1,0 +1,36 @@
+Partners: Allen Zheng, Jeffery Wu
+
+Menger Sponge:
+
+Known Issues:
+-----------------------------------
+Mouse FPS rotation is a little bit off compared to the reference solution. W/S rotation do not rotate the camera very much, if at all. Every other test case should be the same, however.
+
+Sponge Build (Utils.ts, MengerSponge.ts):
+----------------------------------------
+Utils: Created helper functions that construct individual cubes. The vertex orderings are hard-coded to reflect the face indices and normals properly.
+Helper functions create vectors to help the logic of the implementation. This could be faster by just updating the actual flat arrays, but was harder to debug. For the purposes of this assignment, it was fast enough.
+
+Sponge: Uses a recursive build with a base case of 1 to build the sponge, skipping inner cubes. For new levels, deletes the whole cube and constructs it from scratch.
+This could be faster with "delete" logic, but again we were going for simplicity to understand the assignment, and it seems to be fast enough to support a level 5 that we added.
+
+Camera: (Gui.ts)
+-----------------------------------------
+Mouse Drag:
+Takes a delta between consecutive frames to retrieve a vector in terms of the screen. This vector is then converted to NDC, then to camera coordinates, then to world coordinates, then a cross product is calculated to find the axis of rotation. Transformation written in the screenToVec function
+
+Other keyboard controls:
+Straightforward implementation that directly applies Camera.ts
+
+Due to the confusing nature of the x-positive direction pointing left, some of our logic is actually seemingly reversed. For example, for camera clockwise roll it actually looks counter-clockwise, but canonically (in world coordinates) it should be clockwise. We chose this to follow to logic of the given function's clockwise flag.
+
+
+Shaders: (App.ts, Shaders.ts, Floor.ts)
+-----------------------------------------
+Diffuse: Standard application of the equations. When we wrote it, we barely knew the shading language, so the logic of setting the color could have probably used an absolute value, but it looks like one of those isEven() meme functions, and it works, so we kept it.
+
+Drawing Floor: Honestly, copied most of the sponge's build data structures and logic, put it in another doc, and replaced it with floor. The floor structure comes from "Floor.ts," where we made a slight modification in the vertices to extend a higher range of values (thank you to Shakeel for suggesting that in Discord).
+
+Floor Shader: Mostly in common with default shader, but we copy the vertical position vector to determine respective x and z for the checkerboard, which can be represented by the parity (mod 2) of their sum. Even though the assignment spec says 1.0 by 1.0 grid, the reference solution uses a scale of 5.0, so we applied that to our logic.
+
+// THANK YOU TO: https://www.khronos.org/files/opengles_shading_language.pdf#%5B%7B%22num%22%3A112%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C115.2%2C374.6%2C0%5D
