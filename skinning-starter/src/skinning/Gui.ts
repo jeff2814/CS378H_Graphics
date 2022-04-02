@@ -1,9 +1,10 @@
-import { Camera } from "../lib/webglutils/Camera.js";
+ import { Camera } from "../lib/webglutils/Camera.js";
 import { CanvasAnimation } from "../lib/webglutils/CanvasAnimation.js";
 import { SkinningAnimation } from "./App.js";
 import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
+
 
 /**
  * Might be useful for designing any animation GUI
@@ -165,6 +166,29 @@ export class GUI implements IGUI {
     }
   }
 
+  private getRayFromScreen(x: number, y: number): Vec3
+  {
+    var inv = (this.projMatrix().multiply(this.viewMatrix())).inverse();
+    var halfx = this.width/2.0;
+    var halfy = this.viewPortHeight/2.0;
+    var near = new Vec4([(x - halfx)/halfx, -1*(y - halfy)/halfy, -1, 1.0]);
+    var far = new Vec4([(x - halfx)/halfx, -1*(y - halfy)/halfy, 1, 1.0]);
+
+    var _near = inv.multiplyVec4(near);
+    let scale_near = _near.scale(1.0/_near.at(3));
+    var _far =  inv.multiplyVec4(far);
+    let scale_far = _far.scale(1.0/_far.at(3));
+
+
+    var dir = new Vec3([scale_far.at(0) - scale_near.at(0),
+                        scale_far.at(1) - scale_near.at(1),
+                        scale_far.at(2) - scale_near.at(2)]);
+
+    
+    var ray = dir.normalize();
+    return ray;
+  }
+
   /**
    * The callback function for a drag event.
    * This event happens after dragStart and
@@ -216,7 +240,27 @@ export class GUI implements IGUI {
     // TODO
     // You will want logic here:
     // 1) To highlight a bone, if the mouse is hovering over a bone;
-    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+
+    console.log("X: " + x + " Y: " + y);
+    var ray = this.getRayFromScreen(x, y);
+    console.log("normalized dir" + ray.xyz);
+    console.log("camera pos " + this.camera.pos().xyz);
+    
+    var meshes = this.animation.getScene().meshes;
+    for(var i = 0; i < meshes.length; i++)
+    {
+      var bone_forest = meshes[i].bones;
+      for(var j = 0; j < bone_forest.length; j++)
+      {
+        
+      }
+    }
+
+
+    //if(highlighted && this.dragging)
+      // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+
+
   }
 
   public getModeString(): string {
