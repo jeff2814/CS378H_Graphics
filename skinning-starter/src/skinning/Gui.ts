@@ -42,6 +42,69 @@ export class Cylinder {
 
   public intersectsBody(position: Vec3, direction: Vec3) : number
   {
+    var x0 = direction.x;
+    var y0 = direction.y;
+
+    var x1 = position.x;
+    var y1 = position.y;
+
+    var a = x1*x1 + y1*y1;
+    var b = 2.0*(x0*x1 + y0*y1);
+    var c = x0*x0 + y0*y0 - 1.0;
+
+    // This implies that x1 = 0.0 and y1 = 0.0, which further
+		// implies that the ray is aligned with the body of the cylinder,
+		// so no intersection.
+    if(a == 0.0) {
+      return -1;
+    }
+
+    var discriminant = b*b - 4.0*a*c;
+
+    if(discriminant < 0) {
+      return -1;
+    }
+    
+    var t2 = (-b + discriminant) / (2.0 * a);
+
+    if( t2 <= RAY_EPSILON ) {
+      return -1;
+    }
+
+    var t1 = (-b - discriminant) / (2.0 * a);
+
+    // too tired to convert this to TS and also have PTSD from weird function behavior
+    // this is not as complicated as it looks. basically instead of doing i.setT(t1) we return it then ignore the rest
+    // honestly I believe we don't even need the second half i.e. can return t2 after this t1 logic
+
+    // if( t1 > RAY_EPSILON ) {
+    //   // Two intersections.
+    //   glm::dvec3 P = r.at( t1 );
+    //   double z = P[2];
+    //   if( z >= 0.0 && z <= 1.0 ) {
+    //     // It's okay.
+    //     i.setT(t1);
+    //     i.setN(glm::normalize(glm::dvec3( P[0], P[1], 0.0 )));
+    //     return true;
+    //   }
+    // }
+
+    // glm::dvec3 P = r.at( t2 );
+    // double z = P[2];
+    // if( z >= 0.0 && z <= 1.0 ) {
+    //   i.setT(t2);
+  
+    //   glm::dvec3 normal( P[0], P[1], 0.0 );
+    //   // In case we are _inside_ the _uncapped_ cone, we need to flip the normal.
+    //   // Essentially, the cone in this case is a double-sided surface
+    //   // and has _2_ normals
+    //   if( !capped && glm::dot(normal, r.getDirection()) > 0 )
+    //     normal = -normal;
+  
+    //   i.setN(glm::normalize(normal));
+    //   return true;
+    // }
+
     return 0.0;
   }
 }
