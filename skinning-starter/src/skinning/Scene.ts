@@ -49,6 +49,7 @@ export class Bone {
 
   public offset: number; // used when parsing the Collada file---you probably don't need to touch these
   public initialTransformation: Mat4;
+  public deformTransformation: Mat4;
 
   constructor(bone: BoneLoader) {
     this.parent = bone.parent;
@@ -60,6 +61,17 @@ export class Bone {
     this.initialPosition = bone.initialPosition.copy();
     this.initialEndpoint = bone.initialEndpoint.copy();
     this.initialTransformation = bone.initialTransformation.copy();
+    this.deformTransformation = this.initialTransformation.copy();
+  }
+
+  public localToWorld() : Mat4 
+  {
+    return this.deformTransformation;
+  }
+
+  public worldToLocal(): Mat4 
+  {
+    return this.deformTransformation.inverse();
   }
 }
 

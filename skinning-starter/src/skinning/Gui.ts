@@ -4,7 +4,10 @@ import { SkinningAnimation } from "./App.js";
 import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
+import { RGBA_ASTC_8x5_Format } from "../lib/threejs/src/constants.js";
 
+const RADIUS = 20.0;
+const RAY_EPSILON = 1.0e-8;
 
 /**
  * Might be useful for designing any animation GUI
@@ -23,10 +26,31 @@ export enum Mode {
   edit  
 }
 
+export class Cylinder {
+  public radius: number;
+  public height: number;
+  public start: Vec3;
+  public end: Vec3;
+
+  constructor(bone: Bone) 
+  {
+    this.radius = RADIUS;
+    this.start = bone.position;
+    this.end = bone.endpoint;
+    this.height = Vec3.distance(this.start, this.end);
+  }
+
+  public intersectsBody(position: Vec3, direction: Vec3) : number
+  {
+    return 0.0;
+  }
+}
+
 /**
  * Handles Mouse and Button events along with
  * the the camera.
  */
+
 
 export class GUI implements IGUI {
   private static readonly rotationSpeed: number = 0.05;
@@ -189,6 +213,32 @@ export class GUI implements IGUI {
     return ray;
   }
 
+  private toVec4(vec: Vec3, flag: number) {return new Vec4([vec.x, vec.y, vec.z, flag])}
+
+  private intersectsBone(camera_pos: Vec3, direction: Vec3) : Bone
+  {
+    var meshes = this.animation.getScene().meshes;
+    for(var i = 0; i < meshes.length; i++)
+    {
+      var bone_forest = meshes[i].bones;
+      for(var j = 0; j < bone_forest.length; j++)
+      {
+        var cur_bone = bone_forest[j];
+        var cylinder = new Cylinder(cur_bone);
+        var time = cylinder.intersectsBody(camera_pos, direction);
+        console.log("Bone Start: " + cur_bone.position.xyz)
+        console.log("Bone End: " + cur_bone.endpoint.xyz);
+        //points: 1, vectors: 0
+        console.log("Bone Start Converted: " + new Vec4([0, 0, 0, 1]).multiplyMat4(cur_bone.localToWorld()).multiplyMat4(cur_bone.worldToLocal()).xyzw);
+        console.log("Bone End Converted: " + new Vec4([0, Vec3.distance(cur_bone.position, cur_bone.endpoint), 0, 1]).multiplyMat4(cur_bone.localToWorld()).multiplyMat4(cur_bone.worldToLocal()).xyzw);
+
+        console.log("Bone Start Local: " + new Vec4([cur_bone.position.x, cur_bone.position.y, cur_bone.position.z, 1]).multiplyMat4(cur_bone.worldToLocal()).xyzw);
+        console.log("Bone End Local: " + new Vec4([cur_bone.endpoint.x, cur_bone.endpoint.y, cur_bone.endpoint.z, 1]).multiplyMat4(cur_bone.worldToLocal()).xyzw);
+      }
+    }
+    return null;
+  }
+
   /**
    * The callback function for a drag event.
    * This event happens after dragStart and
@@ -245,17 +295,8 @@ export class GUI implements IGUI {
     var ray = this.getRayFromScreen(x, y);
     console.log("normalized dir" + ray.xyz);
     console.log("camera pos " + this.camera.pos().xyz);
-    
-    var meshes = this.animation.getScene().meshes;
-    for(var i = 0; i < meshes.length; i++)
-    {
-      var bone_forest = meshes[i].bones;
-      for(var j = 0; j < bone_forest.length; j++)
-      {
-        
-      }
-    }
-
+  
+    this.intersectsBone(this.camera.pos(), ray)
 
     //if(highlighted && this.dragging)
       // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
