@@ -6,7 +6,7 @@ import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { RGBA_ASTC_8x5_Format } from "../lib/threejs/src/constants.js";
 
-const RADIUS = 20.0;
+const RADIUS = .5;
 const RAY_EPSILON = 1.0e-8;
 
 /**
@@ -29,28 +29,62 @@ export enum Mode {
 export class Cylinder {
   public radius: number;
   public height: number;
-  public start: Vec3;
-  public end: Vec3;
+  public start: Vec4;
+  public end: Vec4;
+  public dir: Vec3;
+  public bone: Bone;
 
   constructor(bone: Bone) 
   {
+    
+    this.bone = bone;
     this.radius = RADIUS;
-    this.start = bone.position;
-    this.end = bone.endpoint;
-    this.height = Vec3.distance(this.start, this.end);
+    this.start = (new Vec4([bone.position.x, bone.position.y, bone.position.z, 1]));
+    this.end = (new Vec4([bone.endpoint.x, bone.endpoint.y, bone.endpoint.z, 1]));
+    var pq = Vec3.difference(new Vec3(this.end.xyz), new Vec3(this.start.xyz));
+    this.dir = pq.normalize();
+    this.height = pq.length();
   }
 
-  public intersectsBody(position: Vec3, direction: Vec3) : number
+  private rayAtTime(start_pos: Vec3, dir: Vec3, time: number) : Vec3
   {
-    var x0 = direction.x;
-    var y0 = direction.y;
+    var to_add = dir.scale(time);
+    return start_pos.add(to_add);
+  }
 
-    var x1 = position.x;
-    var y1 = position.y;
+  public intersectsBody(pos: Vec3, dir: Vec3) : number
+  {
+    // var conv_pos = (new Vec4([pos.x, pos.y, pos.z, 1])).multiplyMat4(this.bone.worldToLocal());
+    // var conv_dir = (new Vec4([dir.x, dir.y, dir.z, 0])).multiplyMat4(this.bone.worldToLocal());
 
-    var a = x1*x1 + y1*y1;
-    var b = 2.0*(x0*x1 + y0*y1);
-    var c = x0*x0 + y0*y0 - 1.0;
+    var position = new Vec3(pos.xyz);
+    var direction = new Vec3(dir.xyz);
+
+    console.log("Bone start: " + this.bone.position.xyz);
+    console.log("Bone end: " + this.bone.endpoint.xyz);
+    console.log("Local camera pos: " + position.xyz);
+    console.log("Local ray: " + direction.xyz);
+
+    // https://mrl.cs.nyu.edu/~dzorin/rend05/lecture2.pdf
+    var v = direction;
+    var v_a = this.dir;
+    var dp = Vec3.difference(position, new Vec3(this.start.xyz));
+    var r = this.radius;
+
+    console.log("v: " + v.xyz);
+    console.log("v_a: " + v_a.xyz);
+    console.log("dp " + dp.xyz);
+
+    var v_va = Vec3.difference(v, v_a.scale(Vec3.dot(v, v_a)));
+    var p_va = Vec3.difference(dp, v_a.scale(Vec3.dot(dp, v_a)));
+
+    var a = v_va.squaredLength();
+    var b = 2.0*Vec3.dot(v_va, p_va);
+    var c = p_va.squaredLength() - r*r;
+
+    console.log("a: " + a);
+    console.log("b: " + b);
+    console.log("c: " + c);
 
     // This implies that x1 = 0.0 and y1 = 0.0, which further
 		// implies that the ray is aligned with the body of the cylinder,
@@ -60,52 +94,43 @@ export class Cylinder {
     }
 
     var discriminant = b*b - 4.0*a*c;
+    console.log("discriminant: " + discriminant);
 
     if(discriminant < 0) {
       return -1;
     }
     
-    var t2 = (-b + discriminant) / (2.0 * a);
-
+    var t2 = (-b + Math.sqrt(discriminant)) / (2.0 * a);
+    console.log("t2: " + t2);
     if( t2 <= RAY_EPSILON ) {
       return -1;
     }
 
-    var t1 = (-b - discriminant) / (2.0 * a);
+    var t1 = (-b - Math.sqrt(discriminant)) / (2.0 * a);
+    
+    console.log("t1 " + t1);
 
-    // too tired to convert this to TS and also have PTSD from weird function behavior
-    // this is not as complicated as it looks. basically instead of doing i.setT(t1) we return it then ignore the rest
-    // honestly I believe we don't even need the second half i.e. can return t2 after this t1 logic
+    if(t1 > RAY_EPSILON) 
+    {
+      let p = this.rayAtTime(position, direction, t1);
+      console.log("p_t1: " + p.xyz);
+      let z = p.z;
+      if(z >= 0.0 && z <= 1.0)
+      {
+        // It's okay.
+        return t1;
+      }
+    }
 
-    // if( t1 > RAY_EPSILON ) {
-    //   // Two intersections.
-    //   glm::dvec3 P = r.at( t1 );
-    //   double z = P[2];
-    //   if( z >= 0.0 && z <= 1.0 ) {
-    //     // It's okay.
-    //     i.setT(t1);
-    //     i.setN(glm::normalize(glm::dvec3( P[0], P[1], 0.0 )));
-    //     return true;
-    //   }
-    // }
+    let p2 = this.rayAtTime(position,direction,t2);
+    console.log("p_t2: " + p2.xyz);
+    let z2 = p2.z;
+    if(z2 >= 0.0 && z2 <= 1.0)
+    {
+      return t2;
+    }
 
-    // glm::dvec3 P = r.at( t2 );
-    // double z = P[2];
-    // if( z >= 0.0 && z <= 1.0 ) {
-    //   i.setT(t2);
-  
-    //   glm::dvec3 normal( P[0], P[1], 0.0 );
-    //   // In case we are _inside_ the _uncapped_ cone, we need to flip the normal.
-    //   // Essentially, the cone in this case is a double-sided surface
-    //   // and has _2_ normals
-    //   if( !capped && glm::dot(normal, r.getDirection()) > 0 )
-    //     normal = -normal;
-  
-    //   i.setN(glm::normalize(normal));
-    //   return true;
-    // }
-
-    return 0.0;
+    return -1;
   }
 }
 
@@ -255,25 +280,15 @@ export class GUI implements IGUI {
 
   private getRayFromScreen(x: number, y: number): Vec3
   {
-    var inv = (this.projMatrix().multiply(this.viewMatrix())).inverse();
     var halfx = this.width/2.0;
     var halfy = this.viewPortHeight/2.0;
-    var near = new Vec4([(x - halfx)/halfx, -1*(y - halfy)/halfy, -1, 1.0]);
-    var far = new Vec4([(x - halfx)/halfx, -1*(y - halfy)/halfy, 1, 1.0]);
-
-    var _near = inv.multiplyVec4(near);
-    let scale_near = _near.scale(1.0/_near.at(3));
-    var _far =  inv.multiplyVec4(far);
-    let scale_far = _far.scale(1.0/_far.at(3));
-
-
-    var dir = new Vec3([scale_far.at(0) - scale_near.at(0),
-                        scale_far.at(1) - scale_near.at(1),
-                        scale_far.at(2) - scale_near.at(2)]);
-
-    
-    var ray = dir.normalize();
-    return ray;
+    var ndc = new Vec2([(x - halfx)/halfx, -1*(y - halfy)/halfy]);
+    var clip = new Vec4([ndc.x, ndc.y, -1.0, 1.0]);
+    var eye = this.projMatrix().inverse().multiplyVec4(clip);
+    var ray_eye = new Vec4([eye.x, eye.y, -1.0, 0.0]);
+    var ray_world = this.viewMatrix().inverse().multiplyVec4(ray_eye);
+    var norm = (new Vec3(ray_world.xyz)).normalize();
+    return norm;
   }
 
   private toVec4(vec: Vec3, flag: number) {return new Vec4([vec.x, vec.y, vec.z, flag])}
@@ -289,14 +304,9 @@ export class GUI implements IGUI {
         var cur_bone = bone_forest[j];
         var cylinder = new Cylinder(cur_bone);
         var time = cylinder.intersectsBody(camera_pos, direction);
-        console.log("Bone Start: " + cur_bone.position.xyz)
-        console.log("Bone End: " + cur_bone.endpoint.xyz);
+        console.log("Time: " + time);
         //points: 1, vectors: 0
-        console.log("Bone Start Converted: " + new Vec4([0, 0, 0, 1]).multiplyMat4(cur_bone.localToWorld()).multiplyMat4(cur_bone.worldToLocal()).xyzw);
-        console.log("Bone End Converted: " + new Vec4([0, Vec3.distance(cur_bone.position, cur_bone.endpoint), 0, 1]).multiplyMat4(cur_bone.localToWorld()).multiplyMat4(cur_bone.worldToLocal()).xyzw);
 
-        console.log("Bone Start Local: " + new Vec4([cur_bone.position.x, cur_bone.position.y, cur_bone.position.z, 1]).multiplyMat4(cur_bone.worldToLocal()).xyzw);
-        console.log("Bone End Local: " + new Vec4([cur_bone.endpoint.x, cur_bone.endpoint.y, cur_bone.endpoint.z, 1]).multiplyMat4(cur_bone.worldToLocal()).xyzw);
       }
     }
     return null;
