@@ -73,9 +73,9 @@ export class Cylinder {
     var direction = new Vec3(conv_dir.xyz);
 
     // derivation... || (p + vt - p_a) x v_a || / ||v_a|| <= r
-    let v = direction;
-    let v_a = this.dir;
-    let dp = Vec3.difference(position, new Vec3(this.start.xyz));
+    let v = direction; // direction of the ray
+    let v_a = this.dir; // cylinder's axis
+    let dp = Vec3.difference(position, new Vec3(this.start.xyz)); // vector PQ in the formula
     let r = this.radius;
 
     let temp_a = v.y*v_a.z - v.z*v_a.y;
@@ -87,10 +87,6 @@ export class Cylinder {
     let temp_y = dp.z*v_a.x - dp.x*v_a.z;
     let temp_z = dp.x*v_a.y - dp.y*v_a.x;
     let p_va = new Vec3([temp_x, temp_y, temp_z]);
-
-
-    // var v_va = Vec3.difference(v, v_a.scale(Vec3.dot(v, v_a)));
-    // var p_va = Vec3.difference(dp, v_a.scale(Vec3.dot(dp, v_a)));
 
     var a = v_va.squaredLength();
     var b = 2.0*Vec3.dot(v_va, p_va);
@@ -174,6 +170,9 @@ export class GUI implements IGUI {
   private animation: SkinningAnimation;
 
   public time: number;
+
+  private selected_bone: Bone;
+  private hovered_bone: Bone;
   
   public mode: Mode;
   
@@ -194,6 +193,8 @@ export class GUI implements IGUI {
     this.width = canvas.width;
     this.prevX = 0;
     this.prevY = 0;
+    this.selected_bone = null;
+    this.hovered_bone = null;
     
     this.animation = animation;
     
@@ -223,6 +224,8 @@ export class GUI implements IGUI {
     this.dragging = false;
     this.time = 0;
     this.mode = Mode.edit;
+    this.selected_bone = null;
+    this.hovered_bone = null;
     this.camera = new Camera(
       new Vec3([0, 0, -6]),
       new Vec3([0, 0, 0]),
@@ -280,7 +283,16 @@ export class GUI implements IGUI {
     this.dragging = true;
     this.prevX = mouse.screenX;
     this.prevY = mouse.screenY;
-    
+
+    let x = mouse.offsetX;
+    let y = mouse.offsetY;
+    console.log("X: " + x + " Y: " + y);
+    var ray = this.getRayFromScreen(x, y);
+    console.log("ray: " + ray.xyz);
+    console.log("camera pos: " + this.camera.pos().xyz);
+    this.selected_bone = this.intersectsBone(this.camera.pos(), ray);
+    if(this.selected_bone != null)
+      console.log("Bone selected. Initiating drag/rotate.");   
   }
 
   public incrementTime(dT: number): void {
@@ -342,6 +354,14 @@ export class GUI implements IGUI {
   public drag(mouse: MouseEvent): void {
     let x = mouse.offsetX;
     let y = mouse.offsetY;
+    console.log("X: " + x + " Y: " + y);
+    var ray = this.getRayFromScreen(x, y);
+    console.log("ray: " + ray.xyz);
+    console.log("camera pos: " + this.camera.pos().xyz);
+    this.hovered_bone =  this.intersectsBone(this.camera.pos(), ray);
+    console.log("Hovering Bone? " + (this.hovered_bone != null));
+
+
     if (this.dragging) {
       const dx = mouse.screenX - this.prevX;
       const dy = mouse.screenY - this.prevY;
@@ -360,6 +380,9 @@ export class GUI implements IGUI {
 
       switch (mouse.buttons) {
         case 1: {
+          /* Left Button */
+          if(this.selected_bone != null) break;
+
           let rotAxis: Vec3 = Vec3.cross(this.camera.forward(), mouseDir);
           rotAxis = rotAxis.normalize();
 
@@ -379,25 +402,28 @@ export class GUI implements IGUI {
           break;
         }
       }
-    } 
+    }
     
     // TODO
     // You will want logic here:
-    // 1) To highlight a bone, if the mouse is hovering over a bone;
+    if(this.hovered_bone != null || this.selected_bone != null)
+    {
+      // three cases: (don't need to worry about both being null due to || )
+      // hovered, not selected
+      // selected, but not hovered (dragged out)
+      // hovered and selected 
 
-    console.log("X: " + x + " Y: " + y);
-    var ray = this.getRayFromScreen(x, y);
-    console.log("normalized dir" + ray.xyz);
-    console.log("camera pos " + this.camera.pos().xyz);
-    var highlightedBone = this.intersectsBone(this.camera.pos(), ray);
-    this.animation.getScene().selectedBone = highlightedBone;
+      console.log("X: " + x + " Y: " + y);
+      var ray = this.getRayFromScreen(x, y);
+      console.log("normalized dir" + ray.xyz);
+      console.log("camera pos " + this.camera.pos().xyz);
+      var highlightedBone = this.intersectsBone(this.camera.pos(), ray);
+      this.animation.getScene().selectedBone = highlightedBone;
 
     //if(highlighted && this.dragging)
     // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
-
-
+    }
   }
-
   public getModeString(): string {
     switch (this.mode) {
       case Mode.edit: { return "edit: " + this.getNumKeyFrames() + " keyframes"; }
@@ -416,6 +442,7 @@ export class GUI implements IGUI {
     
     // TODO
     // Maybe your bone highlight/dragging logic needs to do stuff here too
+    this.selected_bone = null;
   }
 
   /**
