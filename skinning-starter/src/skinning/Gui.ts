@@ -6,8 +6,8 @@ import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { RGBA_ASTC_8x5_Format } from "../lib/threejs/src/constants.js";
 
-const RADIUS = .5;
-const RAY_EPSILON = 1.0e-8;
+const RADIUS = .2;
+const RAY_EPSILON = 1e-8;
 
 /**
  * Might be useful for designing any animation GUI
@@ -29,8 +29,8 @@ export enum Mode {
 export class Cylinder {
   public radius: number;
   public height: number;
-  public start: Vec4;
-  public end: Vec4;
+  public start: Vec3;
+  public end: Vec3;
   public dir: Vec3;
   public bone: Bone;
 
@@ -39,52 +39,62 @@ export class Cylinder {
     
     this.bone = bone;
     this.radius = RADIUS;
-    this.start = (new Vec4([bone.position.x, bone.position.y, bone.position.z, 1]));
-    this.end = (new Vec4([bone.endpoint.x, bone.endpoint.y, bone.endpoint.z, 1]));
+    this.start = (new Vec3([bone.position.x, bone.position.y, bone.position.z]));
+    this.end = (new Vec3([bone.endpoint.x, bone.endpoint.y, bone.endpoint.z]));
     var pq = Vec3.difference(new Vec3(this.end.xyz), new Vec3(this.start.xyz));
     this.dir = pq.normalize();
     this.height = pq.length();
   }
 
-  private rayAtTime(start_pos: Vec3, dir: Vec3, time: number) : Vec3
+  private static rayAtTime(start_pos: Vec3, dir: Vec3, time: number) : Vec3
   {
     var to_add = dir.scale(time);
     return start_pos.add(to_add);
   }
 
+  private betweenHelper(x1: number, x2: number, y: number) : boolean
+  {
+    return (y >= x1 && y <= x2) || (y >= x2 && y <= x1) || Math.abs(x1 - y) <= RAY_EPSILON || Math.abs(x2 - y) <= RAY_EPSILON;
+  }
+
+  private between(point: Vec3) : boolean
+  {
+    return this.betweenHelper(this.start.x, this.end.x, point.x) && 
+    this.betweenHelper(this.start.y, this.end.y, point.y) &&
+    this.betweenHelper(this.start.z, this.end.z, point.z);
+  }
+
   public intersectsBody(pos: Vec3, dir: Vec3) : number
   {
-    // var conv_pos = (new Vec4([pos.x, pos.y, pos.z, 1])).multiplyMat4(this.bone.worldToLocal());
-    // var conv_dir = (new Vec4([dir.x, dir.y, dir.z, 0])).multiplyMat4(this.bone.worldToLocal());
+    var conv_pos = (new Vec4([pos.x, pos.y, pos.z, 1]));
+    var conv_dir = (new Vec4([dir.x, dir.y, dir.z, 0]));
 
-    var position = new Vec3(pos.xyz);
-    var direction = new Vec3(dir.xyz);
+    var position = new Vec3(conv_pos.xyz);
+    var direction = new Vec3(conv_dir.xyz);
 
-    console.log("Bone start: " + this.bone.position.xyz);
-    console.log("Bone end: " + this.bone.endpoint.xyz);
-    console.log("Local camera pos: " + position.xyz);
-    console.log("Local ray: " + direction.xyz);
+    // derivation... || (p + vt - p_a) x v_a || / ||v_a|| <= r
+    let v = direction;
+    let v_a = this.dir;
+    let dp = Vec3.difference(position, new Vec3(this.start.xyz));
+    let r = this.radius;
 
-    // https://mrl.cs.nyu.edu/~dzorin/rend05/lecture2.pdf
-    var v = direction;
-    var v_a = this.dir;
-    var dp = Vec3.difference(position, new Vec3(this.start.xyz));
-    var r = this.radius;
+    let temp_a = v.y*v_a.z - v.z*v_a.y;
+    let temp_b = v.z*v_a.x - v.x*v_a.z;
+    let temp_c = v.x*v_a.y - v.y*v_a.x;
+    let v_va = new Vec3([temp_a, temp_b, temp_c]);
 
-    console.log("v: " + v.xyz);
-    console.log("v_a: " + v_a.xyz);
-    console.log("dp " + dp.xyz);
+    let temp_x = dp.y*v_a.z - dp.z*v_a.y;
+    let temp_y = dp.z*v_a.x - dp.x*v_a.z;
+    let temp_z = dp.x*v_a.y - dp.y*v_a.x;
+    let p_va = new Vec3([temp_x, temp_y, temp_z]);
 
-    var v_va = Vec3.difference(v, v_a.scale(Vec3.dot(v, v_a)));
-    var p_va = Vec3.difference(dp, v_a.scale(Vec3.dot(dp, v_a)));
+
+    // var v_va = Vec3.difference(v, v_a.scale(Vec3.dot(v, v_a)));
+    // var p_va = Vec3.difference(dp, v_a.scale(Vec3.dot(dp, v_a)));
 
     var a = v_va.squaredLength();
     var b = 2.0*Vec3.dot(v_va, p_va);
     var c = p_va.squaredLength() - r*r;
-
-    console.log("a: " + a);
-    console.log("b: " + b);
-    console.log("c: " + c);
 
     // This implies that x1 = 0.0 and y1 = 0.0, which further
 		// implies that the ray is aligned with the body of the cylinder,
@@ -94,38 +104,43 @@ export class Cylinder {
     }
 
     var discriminant = b*b - 4.0*a*c;
-    console.log("discriminant: " + discriminant);
+    //console.log("discriminant: " + discriminant);
 
     if(discriminant < 0) {
       return -1;
     }
     
     var t2 = (-b + Math.sqrt(discriminant)) / (2.0 * a);
-    console.log("t2: " + t2);
     if( t2 <= RAY_EPSILON ) {
       return -1;
     }
 
     var t1 = (-b - Math.sqrt(discriminant)) / (2.0 * a);
-    
-    console.log("t1 " + t1);
+
+    var p1 = new Vec3([position.x + direction.x*t1,
+                        position.y + direction.y*t1,
+                        position.z + direction.z*t1]);
+    var p2 = new Vec3([position.x + direction.x*t2,
+                       position.y + direction.y*t2,
+                       position.z + direction.z*t2]);
+    var pq1_start = Vec3.difference(p1, this.start);
+    var pq1_end = Vec3.difference(p2, this.end);
+    var pq2_start = Vec3.difference(p2, this.start);
+    var pq2_end = Vec3.difference(p2, this.end);
+    // for triangle start, end, P, I want angle (p-start-end) and (p-end-start) < 90. I am too lazy to flip the sign of the vector hence the -1
+    // console.log("T1: " + t1 + "P1" + p1.xyz + " cos start " + Vec3.dot(v_a, pq1_start) + " cos end " + Vec3.dot(v_a, pq1_end));
+    // console.log("T2: " + t2 + "P2" + p2.xyz + " cos start " + Vec3.dot(v_a, pq2_start) + " cos end " + Vec3.dot(v_a, pq2_end));
+
 
     if(t1 > RAY_EPSILON) 
     {
-      let p = this.rayAtTime(position, direction, t1);
-      console.log("p_t1: " + p.xyz);
-      let z = p.z;
-      if(z >= 0.0 && z <= 1.0)
+      if(Vec3.dot(v_a, pq1_start) >= 0 && Vec3.dot(v_a, pq1_end) <= 0)
       {
         // It's okay.
         return t1;
       }
     }
-
-    let p2 = this.rayAtTime(position,direction,t2);
-    console.log("p_t2: " + p2.xyz);
-    let z2 = p2.z;
-    if(z2 >= 0.0 && z2 <= 1.0)
+    if(Vec3.dot(v_a, pq2_start) >= 0 && Vec3.dot(v_a, pq2_end) <= 0)
     {
       return t2;
     }
@@ -291,11 +306,13 @@ export class GUI implements IGUI {
     return norm;
   }
 
-  private toVec4(vec: Vec3, flag: number) {return new Vec4([vec.x, vec.y, vec.z, flag])}
+  
 
   private intersectsBone(camera_pos: Vec3, direction: Vec3) : Bone
   {
     var meshes = this.animation.getScene().meshes;
+    let minTime = Number.MAX_SAFE_INTEGER;
+    let minBone = null;
     for(var i = 0; i < meshes.length; i++)
     {
       var bone_forest = meshes[i].bones;
@@ -304,12 +321,16 @@ export class GUI implements IGUI {
         var cur_bone = bone_forest[j];
         var cylinder = new Cylinder(cur_bone);
         var time = cylinder.intersectsBody(camera_pos, direction);
-        console.log("Time: " + time);
-        //points: 1, vectors: 0
-
+        if(time != -1 && time < minTime)
+        {
+          minTime = time;
+          minBone = cur_bone;
+        }
       }
     }
-    return null;
+    console.log("Min Bone \nStart:" + minBone.position.xyz + "\nEnd:" + minBone.endpoint.xyz);
+    console.log("AT Time: " + minTime);
+    return minBone;
   }
 
   /**
@@ -369,7 +390,7 @@ export class GUI implements IGUI {
     console.log("normalized dir" + ray.xyz);
     console.log("camera pos " + this.camera.pos().xyz);
   
-    this.intersectsBone(this.camera.pos(), ray)
+    console.log("Min Bone " + this.intersectsBone(this.camera.pos(), ray));
 
     //if(highlighted && this.dragging)
       // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
