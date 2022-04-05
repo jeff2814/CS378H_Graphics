@@ -504,11 +504,27 @@ export class GUI implements IGUI {
         break;
       }
       case "ArrowLeft": {
-        this.camera.roll(GUI.rollSpeed, false);
+        if(this.hovered_bone != null || this.selected_bone != null)
+        {
+          var to_roll = (this.hovered_bone == null) ? this.selected_bone : this.hovered_bone;
+
+          console.log("Roll Bone Start: " + to_roll.position.xyz)
+          console.log("Roll Bone End: " + to_roll.endpoint.xyz)
+        }
+        else
+          this.camera.roll(GUI.rollSpeed, false);
         break;
       }
       case "ArrowRight": {
-        this.camera.roll(GUI.rollSpeed, true);
+        if(this.hovered_bone != null || this.selected_bone != null)
+        {
+          var to_roll = (this.hovered_bone == null) ? this.selected_bone : this.hovered_bone;
+
+          console.log("Roll Bone Start: " + to_roll.position.xyz)
+          console.log("Roll Bone End: " + to_roll.endpoint.xyz)
+        }
+        else
+          this.camera.roll(GUI.rollSpeed, true);
         break;
       }
       case "ArrowUp": {
