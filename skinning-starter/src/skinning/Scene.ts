@@ -50,6 +50,7 @@ export class Bone {
   public offset: number; // used when parsing the Collada file---you probably don't need to touch these
   public initialTransformation: Mat4;
   public deformTransformation: Mat4;
+  public index: number;
 
   constructor(bone: BoneLoader) {
     this.parent = bone.parent;
@@ -92,8 +93,10 @@ export class Mesh {
     this.worldMatrix = mesh.worldMatrix.copy();
     this.rotation = mesh.rotation.copy();
     this.bones = [];
-    mesh.bones.forEach(bone => {
-      this.bones.push(new Bone(bone));
+    mesh.bones.forEach((bone, index) => {
+      var temp = new Bone(bone);
+      temp.index = index;
+      this.bones.push(temp);
     });
     this.materialName = mesh.materialName;
     this.imgSrc = null;

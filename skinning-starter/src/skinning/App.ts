@@ -200,6 +200,15 @@ export class SkinningAnimation extends CanvasAnimation {
     this.skeletonRenderPass.addAttribute("boneIndex", 1, this.ctx.FLOAT, false,
       1 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].getBoneIndexAttribute());
 
+    this.skeletonRenderPass.addUniform("hlBoneIndex",
+      (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
+        if(this.scene.selectedBone){
+          gl.uniform1f(loc, this.scene.selectedBone.index);
+        }
+        else{
+            gl.uniform1f(loc, -1);
+        }
+    });
     this.skeletonRenderPass.addUniform("mWorld",
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
         gl.uniformMatrix4fv(loc, false, new Float32Array(Mat4.identity.all()));

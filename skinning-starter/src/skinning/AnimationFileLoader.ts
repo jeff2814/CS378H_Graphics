@@ -3,7 +3,7 @@ import { Object3D, Scene, MeshLambertMaterial, SkinnedMesh, BufferGeometry} from
 import { Vec3 } from "../lib/tsm/Vec3.js";
 import { Mat4, Vec4 } from "../lib/TSM.js";
 import { Quat } from "../lib/tsm/Quat.js";
-import { Mesh } from "../skinning/Scene.js";
+import { Bone, Mesh } from "../skinning/Scene.js";
 
 export class AttributeLoader {
   values: Float32Array;
@@ -225,6 +225,7 @@ class CLoader {
   private scene: Scene | null;
   private skinnedMeshes: SkinnedMesh[];
   public meshes: Mesh[];
+  public selectedBone: Bone;
 
   constructor(location: string) {
     this.fileLocation = location;
@@ -232,6 +233,7 @@ class CLoader {
     this.scene = null;
     this.skinnedMeshes = [];
     this.meshes = [];
+    this.selectedBone = null;
   }
 
   public load(callback: Function): void {

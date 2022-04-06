@@ -328,8 +328,8 @@ export class GUI implements IGUI {
         }
       }
     }
-    console.log("Min Bone \nStart:" + minBone.position.xyz + "\nEnd:" + minBone.endpoint.xyz);
-    console.log("AT Time: " + minTime);
+    // console.log("Min Bone \nStart:" + minBone.position.xyz + "\nEnd:" + minBone.endpoint.xyz);
+    // console.log("AT Time: " + minTime);
     return minBone;
   }
 
@@ -389,11 +389,11 @@ export class GUI implements IGUI {
     var ray = this.getRayFromScreen(x, y);
     console.log("normalized dir" + ray.xyz);
     console.log("camera pos " + this.camera.pos().xyz);
-  
-    console.log("Min Bone " + this.intersectsBone(this.camera.pos(), ray));
+    var highlightedBone = this.intersectsBone(this.camera.pos(), ray);
+    this.animation.getScene().selectedBone = highlightedBone;
 
     //if(highlighted && this.dragging)
-      // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
 
 
   }
