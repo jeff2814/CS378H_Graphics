@@ -8,6 +8,7 @@ import { RGBA_ASTC_8x5_Format } from "../lib/threejs/src/constants.js";
 
 const RADIUS = .2;
 const RAY_EPSILON = 1e-8;
+const PI = Math.PI;
 
 /**
  * Might be useful for designing any animation GUI
@@ -44,24 +45,6 @@ export class Cylinder {
     var pq = Vec3.difference(new Vec3(this.end.xyz), new Vec3(this.start.xyz));
     this.dir = pq.normalize();
     this.height = pq.length();
-  }
-
-  private static rayAtTime(start_pos: Vec3, dir: Vec3, time: number) : Vec3
-  {
-    var to_add = dir.scale(time);
-    return start_pos.add(to_add);
-  }
-
-  private betweenHelper(x1: number, x2: number, y: number) : boolean
-  {
-    return (y >= x1 && y <= x2) || (y >= x2 && y <= x1) || Math.abs(x1 - y) <= RAY_EPSILON || Math.abs(x2 - y) <= RAY_EPSILON;
-  }
-
-  private between(point: Vec3) : boolean
-  {
-    return this.betweenHelper(this.start.x, this.end.x, point.x) && 
-    this.betweenHelper(this.start.y, this.end.y, point.y) &&
-    this.betweenHelper(this.start.z, this.end.z, point.z);
   }
 
   public intersectsBody(pos: Vec3, dir: Vec3) : number
@@ -123,10 +106,6 @@ export class Cylinder {
     var pq1_end = Vec3.difference(p2, this.end);
     var pq2_start = Vec3.difference(p2, this.start);
     var pq2_end = Vec3.difference(p2, this.end);
-    // for triangle start, end, P, I want angle (p-start-end) and (p-end-start) < 90. I am too lazy to flip the sign of the vector hence the -1
-    // console.log("T1: " + t1 + "P1" + p1.xyz + " cos start " + Vec3.dot(v_a, pq1_start) + " cos end " + Vec3.dot(v_a, pq1_end));
-    // console.log("T2: " + t2 + "P2" + p2.xyz + " cos start " + Vec3.dot(v_a, pq2_start) + " cos end " + Vec3.dot(v_a, pq2_end));
-
 
     if(t1 > RAY_EPSILON) 
     {
@@ -305,6 +284,60 @@ export class GUI implements IGUI {
     }
   }
 
+  private rotateHelper(root: Bone, curr: Bone, axis: Vec3, angle: number): void 
+  {
+
+    let root_pos = root.worldToLocal().multiplyVec4(new Vec4([curr.position.x, curr.position.y, curr.position.z, 1]));
+    let root_end = root.worldToLocal().multiplyVec4(new Vec4([curr.endpoint.x, curr.endpoint.y, curr.endpoint.z, 1]));
+
+    let rot_qat: Quat = Quat.fromAxisAngle(axis, angle);
+    root_pos = rot_qat.toMat4().multiplyVec4(root_pos);
+    root_end = rot_qat.toMat4().multiplyVec4(root_end);
+
+    curr.position = new Vec3(root.localToWorld().multiplyVec4(root_pos).xyz);
+    curr.endpoint = new Vec3(root.localToWorld().multiplyVec4(root_end).xyz);
+    
+    console.log("Rotated Pos: " + curr.position.xyz);
+    console.log("Rotated End: " + curr.endpoint.xyz);
+  }
+
+  private recursionHelper(root: Bone, bones: Bone[], curr: Bone, axis: Vec3, angle: number): void 
+  {
+    this.rotateHelper(root, curr, axis, angle) //do work: rotate me
+    let children: number[] = curr.children;
+    if(children.length != 0)
+      for(var i = 0; i < children.length; i++)
+      {
+        console.log("Rotating Child ID: " + children[i]);
+        this.recursionHelper(root, bones, bones[children[i]], axis, angle); // recursive step: do work on my children
+      }
+    curr.rotation = Quat.fromAxisAngle(axis, angle).multiply(curr.rotation);
+  }
+
+  private topDownBoneRotate(bone: Bone, axis: Vec3, angle: number): void
+  {
+    var meshes = this.animation.getScene().meshes;
+    //search for the bone.
+    for(var i = 0; i < meshes.length; i++)
+    {
+      var bone_forest = meshes[i].bones;
+      for(var j = 0; j < bone_forest.length; j++)
+      {
+        let cur_bone = bone_forest[j];
+        if(cur_bone.position == bone.position && cur_bone.endpoint == bone.endpoint)
+        {
+          axis = cur_bone.worldToLocal().multiplyVec3(axis);
+          axis.normalize();
+          console.log("Root Roll Axis " + axis.xyz);
+          console.log("Found Root ID: " + j);
+          this.recursionHelper(cur_bone, bone_forest, bone, axis, angle);
+          return; // found, so we're done here.
+        }
+      }
+    }
+  }
+
+
   private getRayFromScreen(x: number, y: number): Vec3
   {
     var halfx = this.width/2.0;
@@ -361,6 +394,11 @@ export class GUI implements IGUI {
     this.hovered_bone =  this.intersectsBone(this.camera.pos(), ray);
     console.log("Hovering Bone? " + (this.hovered_bone != null));
 
+    var vec = new Vec4([1, 0, 0, 0]);
+    var axis = new Vec3([0, 0, 1]);
+    var rot = (new Mat4()).setIdentity();
+
+    var mouse_dir = null;
 
     if (this.dragging) {
       const dx = mouse.screenX - this.prevX;
@@ -373,6 +411,7 @@ export class GUI implements IGUI {
       mouseDir.scale(-dx);
       mouseDir.add(this.camera.up().scale(dy));
       mouseDir.normalize();
+      mouse_dir = mouseDir;
 
       if (dx === 0 && dy === 0) {
         return;
@@ -404,6 +443,11 @@ export class GUI implements IGUI {
       }
     }
     
+    // if(mouse_dir != null)
+    // {
+    //   mouse_dir.y *= -1;
+    //   mouse_dir.z *= -1;
+    // }
     // TODO
     // You will want logic here:
     if(this.hovered_bone != null || this.selected_bone != null)
@@ -420,8 +464,47 @@ export class GUI implements IGUI {
       var highlightedBone = this.intersectsBone(this.camera.pos(), ray);
       this.animation.getScene().selectedBone = highlightedBone;
 
-    //if(highlighted && this.dragging)
-    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+      console.log("Highlighted Bone Start: " + to_highlight.position.xyz)
+      console.log("Highlighted Bone End: " + to_highlight.endpoint.xyz)
+      if(this.dragging)
+      {
+        // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+        console.log("Dragging curr bone. ");
+        var joint_axis = Vec3.difference(to_highlight.position, this.camera.pos());
+        joint_axis = joint_axis.normalize();
+        console.log("MouseDir = " + mouse_dir.xyz);
+        console.log("Bone children: " + to_highlight.children);
+        console.log("Global Start: " + to_highlight.position.xyz);
+        console.log("Local Start: " + to_highlight.worldToLocal().multiplyVec4(new Vec4([to_highlight.position.x, to_highlight.position.y, to_highlight.position.z, 1])).xyzw);
+        console.log("Local End: " + to_highlight.worldToLocal().multiplyVec4(new Vec4([to_highlight.endpoint.x, to_highlight.endpoint.y, to_highlight.endpoint.z, 1])).xyzw);
+        console.log("Root World To Local: " + to_highlight.worldToLocal().row(0));
+        console.log("Root World To Local: " + to_highlight.worldToLocal().row(1));
+        console.log("Root World To Local: " + to_highlight.worldToLocal().row(2));
+        console.log("Root World To Local: " + to_highlight.worldToLocal().row(3));
+        let local_vec = to_highlight.worldToLocal().multiplyVec4(new Vec4([mouse_dir.x, mouse_dir.y, mouse_dir.z, 0]));
+        console.log("Local Vec: " + local_vec.xyzw)
+        //I measure an angle relative to the positive y axis... kinda trippy.
+        let dy = Math.sqrt(local_vec.x * local_vec.x + local_vec.z * local_vec.z);
+        if(local_vec.y < 0)
+          dy *= -1;
+        let dx = Vec3.difference(to_highlight.position, to_highlight.endpoint).length();
+        var theta = 0;
+        if(dx == 0) // edge cases
+        {
+          if(dy == 0) {/*do nothing*/}
+          else theta = (dy > 0) ? PI/2 : 3*PI/2;
+        }
+        else if (dx < 0) // Q2, Q3
+          theta = PI + Math.atan(dy/dx);
+        else if (dy >= 0) // Q1
+          theta = Math.atan(dy/dx);
+        else // Q4
+          theta = 2*PI + Math.atan(dy/dx);
+        
+        //this.topDownBoneRotate(to_highlight, joint_axis, theta);
+        
+        console.log("Calculated Angle: " + theta + " radians " + theta*180/PI + " degrees ");
+      }
     }
   }
   public getModeString(): string {
@@ -507,9 +590,13 @@ export class GUI implements IGUI {
         if(this.hovered_bone != null || this.selected_bone != null)
         {
           var to_roll = (this.hovered_bone == null) ? this.selected_bone : this.hovered_bone;
+          let bone_axis = Vec3.difference(to_roll.endpoint, to_roll.position);
+          bone_axis = bone_axis.normalize();
 
           console.log("Roll Bone Start: " + to_roll.position.xyz)
           console.log("Roll Bone End: " + to_roll.endpoint.xyz)
+          console.log("Roll Bone Axis: " +  bone_axis.xyz);
+          this.topDownBoneRotate(to_roll, bone_axis, GUI.rollSpeed);
         }
         else
           this.camera.roll(GUI.rollSpeed, false);
