@@ -338,6 +338,36 @@ export class GUI implements IGUI {
     }
   }
 
+  private translateHelper(bones: Bone[], curr: Bone, trans: Vec3)
+  {
+    curr.position = Vec3.sum(curr.position, trans);
+    curr.endpoint = Vec3.sum(curr.endpoint, trans);
+    let children: number[] = curr.children;
+    if(children.length != 0)
+      for(var i = 0; i < children.length; i++)
+        this.translateHelper(bones, bones[children[i]], trans)
+  }
+
+
+  private topDownBoneTranslate(bone: Bone, trans: Vec3): void
+  {
+    var meshes = this.animation.getScene().meshes;
+    //search for the bone.
+    for(var i = 0; i < meshes.length; i++)
+    {
+      var bone_forest = meshes[i].bones;
+      for(var j = 0; j < bone_forest.length; j++)
+      {
+        let cur_bone = bone_forest[j];
+        if(cur_bone.position == bone.position && cur_bone.endpoint == bone.endpoint)
+        {
+          this.translateHelper(bone_forest, bone, trans);
+          return; // found, so we're done here.
+        }
+      }
+    }
+  }
+
 
 
   private getRayFromScreen(x: number, y: number): Vec3
@@ -435,6 +465,7 @@ export class GUI implements IGUI {
         }
         case 2: {
           /* Right button, or secondary button */
+          if(this.selected_bone != null) break;
           this.camera.offsetDist(Math.sign(mouseDir.y) * GUI.zoomSpeed);
           break;
         }
@@ -460,13 +491,8 @@ export class GUI implements IGUI {
       // selected, but not hovered (dragged out)
       // hovered and selected 
 
-      console.log("X: " + x + " Y: " + y);
-      var ray = this.getRayFromScreen(x, y);
-      console.log("normalized dir" + ray.xyz);
-      console.log("camera pos " + this.camera.pos().xyz);
-      var highlightedBone = this.intersectsBone(this.camera.pos(), ray);
-      this.animation.getScene().selectedBone = highlightedBone;
       var to_highlight = (this.selected_bone == null) ? this.hovered_bone : this.selected_bone;
+      this.animation.getScene().selectedBone = to_highlight;
 
       console.log("Highlighted Bone Start: " + to_highlight.position.xyz)
       console.log("Highlighted Bone End: " + to_highlight.endpoint.xyz)
@@ -520,10 +546,27 @@ export class GUI implements IGUI {
         else if (Vec3.distance(crossed.scale(-1), joint_axis) <= .01)
           theta = (above) ? -1*Math.acos(cos_theta): PI + alpha;
 
-        this.topDownBoneRotate(to_highlight, joint_axis, theta);
+        switch (mouse.buttons) {
+          case 1: {
+            /* Left Button */
+            this.topDownBoneRotate(to_highlight, joint_axis, theta);
+            break;
+          }
+          case 2: {
+            this.topDownBoneTranslate(to_highlight, mouse_dir);
+            break;
+          }
+          default: {
+            break;
+          }
+        }
         
         console.log("Calculated Angle: " + theta + " radians " + theta*180/PI + " degrees ");
       }
+    }
+    else 
+    {
+      this.animation.getScene().selectedBone = null;
     }
   }
   public getModeString(): string {
