@@ -64,20 +64,15 @@ export class Bone {
     this.initialTransformation = bone.initialTransformation.copy();
   }
 
-  public localToWorld() : Mat4 
+  public get_deform() : Mat4
   {
-    var ret = new Mat4();
-    this.rotation.toMat4().multiply(this.initialTransformation, ret);
-    return ret; 
+    let rot = this.rotation.toMat4();
+    let pos = this.position;
+    return new Mat4([rot.at(0), rot.at(1), rot.at(2), 0,
+                    rot.at(4), rot.at(5), rot.at(6), 0,
+                    rot.at(8), rot.at(9), rot.at(10), 0,
+                    pos.x, pos.y, pos.z, 1]); //
   }
-
-  public worldToLocal(): Mat4 
-  {
-    var ret = new Mat4();
-    this.initialTransformation.inverse(ret).multiply(this.rotation.toMat4().inverse(), ret);
-    return ret;
-  }
-
 }
 
 export class Mesh {
