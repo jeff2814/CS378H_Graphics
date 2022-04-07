@@ -37,7 +37,6 @@ export class Cylinder {
 
   constructor(bone: Bone) 
   {
-    
     this.bone = bone;
     this.radius = RADIUS;
     this.start = (new Vec3([bone.position.x, bone.position.y, bone.position.z]));
@@ -504,6 +503,17 @@ export class GUI implements IGUI {
         joint_axis = joint_axis.normalize(); // unit vector
 
         var bone_vec = Vec3.difference(to_highlight.endpoint, to_highlight.position);
+        if(this.hovered_bone != null)
+        {
+          let isect = (new Cylinder(to_highlight)).intersectsBody(this.camera.pos(), ray);
+          if(isect != -1)
+          {
+            let p_isect = Vec3.sum(this.camera.pos(), ray.scale(isect, new Vec3()));
+            let height = Math.sqrt(Math.pow(Vec3.distance(this.hovered_bone.position, p_isect), 2) - RADIUS*RADIUS);
+            bone_vec.scale(height/bone_vec.length());
+          }
+        }
+
         let projected_mouse = new Vec3();
         let projected_bone = new Vec3();
         // u = mouse_vec, n = axis
@@ -517,18 +527,18 @@ export class GUI implements IGUI {
         let prev_t = Vec3.dot(joint_axis, Vec3.difference(to_highlight.position, this.camera.pos()))/Vec3.dot(joint_axis, ray_prev);
         let curr_p = Vec3.sum(this.camera.pos(), ray_curr.scale(curr_t));
         let prev_p = Vec3.sum(this.camera.pos(), ray_prev.scale(prev_t));
-        
+        let curr_v = Vec3.difference(curr_p, to_highlight.position);
+        let prev_v = Vec3.difference(prev_p, to_highlight.position);        
 
-        console.log("Prev P " + prev_p.xyz);
-        console.log("Curr P " + curr_p.xyz);
-
-        let mouse_dir = Vec3.difference(curr_p, prev_p)
+        let mouse_dir = Vec3.difference(curr_p, prev_p);
         
         projected_bone = Vec3.difference(bone_vec, joint_axis.copy().scale(Vec3.dot(bone_vec, joint_axis)/(joint_axis.squaredLength()), projected_bone));
         projected_mouse = Vec3.sum(mouse_dir,projected_bone);
         // V1 = projected bone vector, V2 = projected mouse dir < v1,v2>
         // dot(V1, V2) = V1*V2 cos theta
         // cross(V1, V2).normalize() == joint_axis, sin(theta) > 0
+
+        
 
         console.log("Projected Mouse" + projected_mouse.xyz + " Projected Bone " + projected_bone.xyz);
         var theta = 0;
@@ -538,6 +548,9 @@ export class GUI implements IGUI {
         var above = Vec3.dot(Vec3.difference(projected_endpoint, to_highlight.position), projected_mouse) >= 0;
 
         var cos_theta = Vec3.dot(projected_bone, projected_mouse)/(projected_bone.length()*projected_mouse.length());
+
+        console.log("cos theta "  +cos_theta); 
+
         var crossed = Vec3.cross(projected_bone, projected_mouse);
         crossed.normalize();
         let alpha =  Math.acos(cos_theta);
