@@ -69,10 +69,20 @@ export const sceneVSText = `
     uniform vec3 jTrans[64];
     uniform vec4 jRots[64];
 
+    vec3 qtrans(vec4 q, vec4 v) {
+        return v.xyz + 2.0 * cross(cross(v.xyz, q.xyz) - q.w*v.xyz, q.xyz);
+    }
+
     void main () {
         vec3 trans = vertPosition;
         vec4 worldPosition = mWorld * vec4(trans, 1.0);
-        gl_Position = mProj * mView * worldPosition;
+        vec4 weightedPositions0 = mProj * mView * mWorld * vec4(jTrans[int(skinIndices[0])] + qtrans(jRots[int(skinIndices[0])], v0), 1.0);
+        vec4 weightedPositions1 = mProj * mView * mWorld * vec4(jTrans[int(skinIndices[1])] + qtrans(jRots[int(skinIndices[1])], v1), 1.0);
+        vec4 weightedPositions2 = mProj * mView * mWorld * vec4(jTrans[int(skinIndices[2])] + qtrans(jRots[int(skinIndices[2])], v2), 1.0);
+        vec4 weightedPositions3 = mProj * mView * mWorld * vec4(jTrans[int(skinIndices[3])] + qtrans(jRots[int(skinIndices[3])], v3), 1.0);
+        vec4 temp = (skinWeights[0] * weightedPositions0) + (skinWeights[1] * weightedPositions1) + (skinWeights[2] * weightedPositions2) + (skinWeights[3] * weightedPositions3);
+        // gl_Position = mProj * mView * worldPosition;
+        gl_Position = temp;
         
         //  Compute light direction and transform to camera coordinates
         lightDir = lightPosition - worldPosition;
