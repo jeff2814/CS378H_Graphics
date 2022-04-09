@@ -144,6 +144,7 @@ export class GUI implements IGUI {
   private height: number;
   private viewPortHeight: number;
   private width: number;
+  private viewPortWidth: number;
 
   private animation: SkinningAnimation;
 
@@ -169,6 +170,7 @@ export class GUI implements IGUI {
     this.height = canvas.height;
     this.viewPortHeight = this.height - 200;
     this.width = canvas.width;
+    this.viewPortWidth = this.width - 320;
     this.prevX = 0;
     this.prevY = 0;
     this.selected_bone = null;
@@ -209,7 +211,7 @@ export class GUI implements IGUI {
       new Vec3([0, 0, 0]),
       new Vec3([0, 1, 0]),
       45,
-      this.width / this.viewPortHeight,
+      this.viewPortWidth / this.viewPortHeight,
       0.1,
       1000.0
     );
@@ -250,7 +252,7 @@ export class GUI implements IGUI {
    * @param mouse
    */
   public dragStart(mouse: MouseEvent): void {
-    if (mouse.offsetY > 600) {
+    if (mouse.offsetY > 600 || mouse.offsetX > 800) {
       // outside the main panel
       return;
     }
@@ -266,8 +268,6 @@ export class GUI implements IGUI {
     let y = mouse.offsetY;
     console.log("X: " + x + " Y: " + y);
     var ray = this.getRayFromScreen(x, y);
-    console.log("ray: " + ray.xyz);
-    console.log("camera pos: " + this.camera.pos().xyz);
     this.selected_bone = this.intersectsBone(this.camera.pos(), ray);
     if(this.selected_bone != null)
       console.log("Bone selected. Initiating drag/rotate.");   
@@ -289,9 +289,6 @@ export class GUI implements IGUI {
     let root_pos = (new Vec4([curr.position.x - root.position.x, curr.position.y - root.position.y, curr.position.z - root.position.z, 1]));
     let root_end = (new Vec4([curr.endpoint.x - root.position.x, curr.endpoint.y - root.position.y, curr.endpoint.z - root.position.z, 1]));
 
-    console.log("root pos: " +  root_pos.xyzw);
-    console.log("root end: " +  root_end.xyzw);
-
     let rot_qat: Quat = Quat.fromAxisAngle(axis, angle);
     root_pos = rot_qat.toMat4().multiplyVec4(root_pos);
     root_end = rot_qat.toMat4().multiplyVec4(root_end);
@@ -308,7 +305,6 @@ export class GUI implements IGUI {
     if(children.length != 0)
       for(var i = 0; i < children.length; i++)
       {
-        console.log("Rotating Child ID: " + children[i]);
         this.recursionHelper(root, bones, bones[children[i]], axis, angle); // recursive step: do work on my children
       }
     
@@ -328,8 +324,6 @@ export class GUI implements IGUI {
         {
           //axis in its original direction, assume position = (0, 0, 0);
           axis.normalize();
-          console.log("Root Roll Axis " + axis.xyz);
-          console.log("Found Root ID: " + j);
           this.recursionHelper(cur_bone, bone_forest, bone, axis, angle);
           return; // found, so we're done here.
         }
@@ -371,7 +365,7 @@ export class GUI implements IGUI {
 
   private getRayFromScreen(x: number, y: number): Vec3
   {
-    var halfx = this.width/2.0;
+    var halfx = this.viewPortWidth/2.0;
     var halfy = this.viewPortHeight/2.0;
     var ndc = new Vec2([(x - halfx)/halfx, -1*(y - halfy)/halfy]);
     var clip = new Vec4([ndc.x, ndc.y, -1.0, 1.0]);
@@ -420,10 +414,7 @@ export class GUI implements IGUI {
     let y = mouse.offsetY;
     console.log("X: " + x + " Y: " + y);
     var ray = this.getRayFromScreen(x, y);
-    console.log("ray: " + ray.xyz);
-    console.log("camera pos: " + this.camera.pos().xyz);
     this.hovered_bone =  this.intersectsBone(this.camera.pos(), ray);
-    console.log("Hovering Bone? " + (this.hovered_bone != null));
 
     var ray_curr = this.getRayFromScreen(mouse.screenX, mouse.screenY);
     var ray_prev = this.getRayFromScreen(this.prevX, this.prevY);
@@ -493,12 +484,9 @@ export class GUI implements IGUI {
       var to_highlight = (this.selected_bone == null) ? this.hovered_bone : this.selected_bone;
       this.animation.getScene().selectedBone = to_highlight;
 
-      console.log("Highlighted Bone Start: " + to_highlight.position.xyz)
-      console.log("Highlighted Bone End: " + to_highlight.endpoint.xyz)
       if(this.dragging)
       {
         // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
-        console.log("Dragging curr bone. ");
         var joint_axis = Vec3.difference(to_highlight.position, this.camera.pos()); //axis = diff(joint start, eye)
         joint_axis = joint_axis.normalize(); // unit vector
 
@@ -521,8 +509,6 @@ export class GUI implements IGUI {
         // dot(n, p + vt - bone start) = 0
         // dot(n, v)*t = dot(bone start - p)
         // t = dot(n, bone start - p)/dot(n, v), recalculate p + vt
-        console.log("Prev ray " + ray_prev.xyz);
-        console.log("Curr ray " + ray_curr.xyz);
         let curr_t = Vec3.dot(joint_axis, Vec3.difference(to_highlight.position, this.camera.pos()))/Vec3.dot(joint_axis, ray_curr);
         let prev_t = Vec3.dot(joint_axis, Vec3.difference(to_highlight.position, this.camera.pos()))/Vec3.dot(joint_axis, ray_prev);
         let curr_p = Vec3.sum(this.camera.pos(), ray_curr.scale(curr_t));
@@ -538,9 +524,6 @@ export class GUI implements IGUI {
         // dot(V1, V2) = V1*V2 cos theta
         // cross(V1, V2).normalize() == joint_axis, sin(theta) > 0
 
-        
-
-        console.log("Projected Mouse" + projected_mouse.xyz + " Projected Bone " + projected_bone.xyz);
         var theta = 0;
 
         //logic to flip the bone if the mouse moves under it. WIP and not necessary?
@@ -573,8 +556,6 @@ export class GUI implements IGUI {
             break;
           }
         }
-        
-        console.log("Calculated Angle: " + theta + " radians " + theta*180/PI + " degrees ");
       }
     }
     else 

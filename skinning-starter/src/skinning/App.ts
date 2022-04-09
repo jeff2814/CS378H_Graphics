@@ -53,6 +53,7 @@ export class SkinningAnimation extends CanvasAnimation {
     super(canvas);
 
     this.canvas2d = document.getElementById("textCanvas") as HTMLCanvasElement;
+    this.canvas2d.width += 320;
     this.ctx2 = this.canvas2d.getContext("2d");
     if (this.ctx2) {
       this.ctx2.font = "25px serif";
@@ -322,6 +323,8 @@ export class SkinningAnimation extends CanvasAnimation {
     /* Draw status bar */
     if (this.scene.meshes.length > 0) {
       gl.viewport(0, 0, 800, 200);
+      this.sBackRenderPass.draw();   
+      gl.viewport(800, 0, 320, 800);
       this.sBackRenderPass.draw();      
     }    
 
