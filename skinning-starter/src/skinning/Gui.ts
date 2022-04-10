@@ -5,6 +5,7 @@ import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { RGBA_ASTC_8x5_Format } from "../lib/threejs/src/constants.js";
+import { Cylinder, KeyFrame } from "./Utils.js";
 
 const RADIUS = .2;
 const RAY_EPSILON = 1e-8;
@@ -25,102 +26,6 @@ interface IGUI {
 export enum Mode {
   playback,  
   edit  
-}
-
-export class Cylinder {
-  public radius: number;
-  public height: number;
-  public start: Vec3;
-  public end: Vec3;
-  public dir: Vec3;
-  public bone: Bone;
-
-  constructor(bone: Bone) 
-  {
-    this.bone = bone;
-    this.radius = RADIUS;
-    this.start = (new Vec3([bone.position.x, bone.position.y, bone.position.z]));
-    this.end = (new Vec3([bone.endpoint.x, bone.endpoint.y, bone.endpoint.z]));
-    var pq = Vec3.difference(new Vec3(this.end.xyz), new Vec3(this.start.xyz));
-    this.dir = pq.normalize();
-    this.height = pq.length();
-  }
-
-  public intersectsBody(pos: Vec3, dir: Vec3) : number
-  {
-    var conv_pos = (new Vec4([pos.x, pos.y, pos.z, 1]));
-    var conv_dir = (new Vec4([dir.x, dir.y, dir.z, 0]));
-
-    var position = new Vec3(conv_pos.xyz);
-    var direction = new Vec3(conv_dir.xyz);
-
-    // derivation... || (p + vt - p_a) x v_a || / ||v_a|| <= r
-    let v = direction; // direction of the ray
-    let v_a = this.dir; // cylinder's axis
-    let dp = Vec3.difference(position, new Vec3(this.start.xyz)); // vector PQ in the formula
-    let r = this.radius;
-
-    let temp_a = v.y*v_a.z - v.z*v_a.y;
-    let temp_b = v.z*v_a.x - v.x*v_a.z;
-    let temp_c = v.x*v_a.y - v.y*v_a.x;
-    let v_va = new Vec3([temp_a, temp_b, temp_c]);
-
-    let temp_x = dp.y*v_a.z - dp.z*v_a.y;
-    let temp_y = dp.z*v_a.x - dp.x*v_a.z;
-    let temp_z = dp.x*v_a.y - dp.y*v_a.x;
-    let p_va = new Vec3([temp_x, temp_y, temp_z]);
-
-    var a = v_va.squaredLength();
-    var b = 2.0*Vec3.dot(v_va, p_va);
-    var c = p_va.squaredLength() - r*r;
-
-    // This implies that x1 = 0.0 and y1 = 0.0, which further
-		// implies that the ray is aligned with the body of the cylinder,
-		// so no intersection.
-    if(a == 0.0) {
-      return -1;
-    }
-
-    var discriminant = b*b - 4.0*a*c;
-    //console.log("discriminant: " + discriminant);
-
-    if(discriminant < 0) {
-      return -1;
-    }
-    
-    var t2 = (-b + Math.sqrt(discriminant)) / (2.0 * a);
-    if( t2 <= RAY_EPSILON ) {
-      return -1;
-    }
-
-    var t1 = (-b - Math.sqrt(discriminant)) / (2.0 * a);
-
-    var p1 = new Vec3([position.x + direction.x*t1,
-                        position.y + direction.y*t1,
-                        position.z + direction.z*t1]);
-    var p2 = new Vec3([position.x + direction.x*t2,
-                       position.y + direction.y*t2,
-                       position.z + direction.z*t2]);
-    var pq1_start = Vec3.difference(p1, this.start);
-    var pq1_end = Vec3.difference(p2, this.end);
-    var pq2_start = Vec3.difference(p2, this.start);
-    var pq2_end = Vec3.difference(p2, this.end);
-
-    if(t1 > RAY_EPSILON) 
-    {
-      if(Vec3.dot(v_a, pq1_start) >= 0 && Vec3.dot(v_a, pq1_end) <= 0)
-      {
-        // It's okay.
-        return t1;
-      }
-    }
-    if(Vec3.dot(v_a, pq2_start) >= 0 && Vec3.dot(v_a, pq2_end) <= 0)
-    {
-      return t2;
-    }
-
-    return -1;
-  }
 }
 
 /**
@@ -145,6 +50,9 @@ export class GUI implements IGUI {
   private viewPortHeight: number;
   private width: number;
   private viewPortWidth: number;
+
+  private num_keyframes: number;
+  private keyframes: KeyFrame[];
 
   private animation: SkinningAnimation;
 
@@ -176,6 +84,9 @@ export class GUI implements IGUI {
     this.selected_bone = null;
     this.hovered_bone = null;
     
+    this.num_keyframes = 0;
+    this.keyframes = [];
+
     this.animation = animation;
     
     this.reset();
@@ -186,14 +97,14 @@ export class GUI implements IGUI {
   public getNumKeyFrames(): number {
     // TODO
     // Used in the status bar in the GUI
-    return 0;
+    return this.num_keyframes;
   }
   public getTime(): number { return this.time; }
   
   public getMaxTime(): number { 
     // TODO
     // The animation should stop after the last keyframe
-    return 0;
+    return (this.num_keyframes > 1) ? this.num_keyframes - 1: 0;
   }
 
   /**
@@ -206,6 +117,10 @@ export class GUI implements IGUI {
     this.mode = Mode.edit;
     this.selected_bone = null;
     this.hovered_bone = null;
+
+    this.num_keyframes = 0;
+    this.keyframes = [];
+    
     this.camera = new Camera(
       new Vec3([0, 0, -6]),
       new Vec3([0, 0, 0]),
@@ -335,6 +250,7 @@ export class GUI implements IGUI {
   {
     curr.position = Vec3.sum(curr.position, trans);
     curr.endpoint = Vec3.sum(curr.endpoint, trans);
+    curr.translation = Vec3.sum(curr.translation, trans);
     let children: number[] = curr.children;
     if(children.length != 0)
       for(var i = 0; i < children.length; i++)
@@ -398,8 +314,6 @@ export class GUI implements IGUI {
         }
       }
     }
-    // console.log("Min Bone \nStart:" + minBone.position.xyz + "\nEnd:" + minBone.endpoint.xyz);
-    // console.log("AT Time: " + minTime);
     return minBone;
   }
 
@@ -412,7 +326,7 @@ export class GUI implements IGUI {
   public drag(mouse: MouseEvent): void {
     let x = mouse.offsetX;
     let y = mouse.offsetY;
-    console.log("X: " + x + " Y: " + y);
+    //console.log("X: " + x + " Y: " + y);
     var ray = this.getRayFromScreen(x, y);
     this.hovered_bone =  this.intersectsBone(this.camera.pos(), ray);
 
@@ -467,11 +381,6 @@ export class GUI implements IGUI {
     
     // (dx, dy) -> some vector, angle b/w bone & vector is what we want
 
-    // if(mouse_dir != null)
-    // {
-    //   mouse_dir.y *= -1;
-    //   mouse_dir.z *= -1;
-    // }
     // TODO
     // You will want logic here:
     if(this.hovered_bone != null || this.selected_bone != null)
@@ -531,8 +440,6 @@ export class GUI implements IGUI {
         var above = Vec3.dot(Vec3.difference(projected_endpoint, to_highlight.position), projected_mouse) >= 0;
 
         var cos_theta = Vec3.dot(projected_bone, projected_mouse)/(projected_bone.length()*projected_mouse.length());
-
-        console.log("cos theta "  +cos_theta); 
 
         var crossed = Vec3.cross(projected_bone, projected_mouse);
         crossed.normalize();
@@ -678,6 +585,8 @@ export class GUI implements IGUI {
         if (this.mode === Mode.edit) {
             // TODO
             // Add keyframe
+            this.num_keyframes++;
+            this.keyframes.push(new KeyFrame(this.animation.getScene()));
         }
         break;
       }      

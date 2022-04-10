@@ -43,9 +43,11 @@ export class Bone {
   public position: Vec3; // current position of the bone's joint *in world coordinates*. Used by the provided skeleton shader, so you need to keep this up to date.
   public endpoint: Vec3; // current position of the bone's second (non-joint) endpoint, in world coordinates
   public rotation: Quat; // current orientation of the joint *with respect to world coordinates*
+  public translation: Vec3; // all translations (excluding from rotation matrices) done so far
   
   public initialPosition: Vec3; // position of the bone's joint *in world coordinates*
   public initialEndpoint: Vec3; // position of the bone's second (non-joint) endpoint, in world coordinates
+  public initialRotation: Quat; // initial rotation
 
   public offset: number; // used when parsing the Collada file---you probably don't need to touch these
   public initialTransformation: Mat4;
@@ -58,9 +60,11 @@ export class Bone {
     this.position = bone.position.copy();
     this.endpoint = bone.endpoint.copy();
     this.rotation = bone.rotation.copy();
+    this.translation = new Vec3();
     this.offset = bone.offset;
     this.initialPosition = bone.initialPosition.copy();
     this.initialEndpoint = bone.initialEndpoint.copy();
+    this.initialRotation = this.rotation.copy();
     this.initialTransformation = bone.initialTransformation.copy();
   }
 
