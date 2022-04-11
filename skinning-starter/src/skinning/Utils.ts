@@ -1,6 +1,6 @@
 import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { CLoader } from "./AnimationFileLoader.js";
-import { Bone } from "./Scene.js";
+import { Bone, Mesh } from "./Scene.js";
 
 const RADIUS = .2;
 const RAY_EPSILON = 1e-8;
@@ -104,26 +104,43 @@ export class Cylinder {
 
 export class KeyFrame {
     public cur_scene: CLoader;
-    private static ctr: number;
+    public meshes: Mesh[];
 
     constructor(scene: CLoader) 
     {
         this.cur_scene = scene;
+        this.meshes = [];
 
+        // copy over the initial state of the keyframe, not a pointer as it animates
         var meshes = this.cur_scene.meshes;
         for(var i = 0; i < meshes.length; i++)
         {
-            var bone_forest = meshes[i].bones;
-            console.log("Cur Bone Forest Index: " + i);
-            for(var j = 0; j < bone_forest.length; j++)
-            {
-                var cur_bone = bone_forest[j];
-                console.log("\tCur Bone Index: " + j);
-                console.log("\t\tCur Bone Position: " + cur_bone.position.xyz);
-                console.log("\t\tCur Bone Endpoint: " + cur_bone.endpoint.xyz);
-                console.log("\t\tCur Bone Rotation: " + cur_bone.rotation.xyzw);
-                console.log("\t\tCur Bone Translation: " + cur_bone.translation.xyz);
-            }
+            this.meshes.push(meshes[i].copy())
         }
+    }
+
+    public get_bone(bf_index: number, b_index:number): Bone
+    {
+        return this.meshes[bf_index].bones[b_index];
+    }
+
+    public get_pos(bf_index: number, b_index: number): Vec3
+    {
+        return this.get_bone(bf_index, b_index).position;
+    }
+
+    public get_end(bf_index: number, b_index: number): Vec3
+    {
+        return this.get_bone(bf_index, b_index).endpoint;
+    }
+
+    public get_rot(bf_index: number, b_index: number): Quat
+    {
+        return this.get_bone(bf_index, b_index).rotation;
+    }
+
+    public get_trans(bf_index: number, b_index: number): Vec3
+    {
+        return this.get_bone(bf_index, b_index).translation;
     }
 }

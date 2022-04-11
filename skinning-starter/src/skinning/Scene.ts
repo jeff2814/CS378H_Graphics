@@ -38,12 +38,16 @@ export class MeshGeometry {
 }
 
 export class Bone {
+  public loader: BoneLoader; //for easy copy constructor
+
   public parent: number;
   public children: number[];
   public position: Vec3; // current position of the bone's joint *in world coordinates*. Used by the provided skeleton shader, so you need to keep this up to date.
   public endpoint: Vec3; // current position of the bone's second (non-joint) endpoint, in world coordinates
   public rotation: Quat; // current orientation of the joint *with respect to world coordinates*
   public translation: Vec3; // all translations (excluding from rotation matrices) done so far
+
+  public rotations: Map<Bone, Quat>;
   
   public initialPosition: Vec3; // position of the bone's joint *in world coordinates*
   public initialEndpoint: Vec3; // position of the bone's second (non-joint) endpoint, in world coordinates
@@ -55,16 +59,21 @@ export class Bone {
   public index: number;
 
   constructor(bone: BoneLoader) {
+    this.loader = bone;
+
     this.parent = bone.parent;
     this.children = Array.from(bone.children);
     this.position = bone.position.copy();
     this.endpoint = bone.endpoint.copy();
     this.rotation = bone.rotation.copy();
     this.translation = new Vec3();
+
+    this.rotations = new Map<Bone, Quat>();
+
     this.offset = bone.offset;
     this.initialPosition = bone.initialPosition.copy();
     this.initialEndpoint = bone.initialEndpoint.copy();
-    this.initialRotation = this.rotation.copy();
+    this.initialRotation = (new Quat()).setIdentity();
     this.initialTransformation = bone.initialTransformation.copy();
   }
 
@@ -77,6 +86,34 @@ export class Bone {
                     rot.at(8), rot.at(9), rot.at(10), 0,
                     pos.x, pos.y, pos.z, 1]); //
   }
+
+  public copy(): Bone 
+  {
+    var ret:Bone =  new Bone(this.loader);
+    
+    ret.parent = this.parent;
+    ret.children = [];
+    this.children.forEach((child) => {
+      ret.children.push(child);
+    })
+
+    ret.position = this.position.copy();
+    ret.endpoint = this.endpoint.copy()
+    ret.rotation = this.rotation.copy();
+    ret.translation = this.translation.copy();
+
+    ret.rotations = new Map<Bone, Quat>(this.rotations);
+
+    ret.initialPosition = this.initialPosition.copy();
+    ret.initialEndpoint = this.initialEndpoint.copy();
+    ret.initialRotation = this.initialRotation.copy();
+
+    ret.offset = this.offset;
+    ret.initialTransformation = this.initialTransformation.copy();
+    ret.index = this.index;
+
+    return ret;
+  }
 }
 
 export class Mesh {
@@ -87,11 +124,14 @@ export class Mesh {
   public materialName: string;
   public imgSrc: String | null;
 
+  private loader: MeshLoader;
   private boneIndices: number[];
   private bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
 
-  constructor(mesh: MeshLoader) {
+  constructor(mesh: MeshLoader) 
+  {
+    this.loader = mesh;
     this.geometry = new MeshGeometry(mesh.geometry);
     this.worldMatrix = mesh.worldMatrix.copy();
     this.rotation = mesh.rotation.copy();
@@ -140,5 +180,28 @@ export class Mesh {
       }
     });
     return trans;
+  }
+
+  public copy(): Mesh 
+  {
+    var ret: Mesh = new Mesh(this.loader);
+
+    ret.worldMatrix = this.worldMatrix.copy();
+    ret.rotation = this.rotation.copy();
+    ret.bones = [];
+    for(var i = 0; i < this.bones.length; i++)
+    {
+      ret.bones.push(this.bones[i].copy());
+    }
+    
+    ret.boneIndices = [];
+    for(var j = 0; j < this.boneIndices.length; j++)
+    {
+      ret.boneIndices.push(this.boneIndices[j]);
+    }
+
+    ret.bonePositions = new Float32Array(this.bonePositions);
+    ret.boneIndexAttribute = new Float32Array(this.boneIndexAttribute);
+    return ret;
   }
 }

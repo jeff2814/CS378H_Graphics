@@ -199,28 +199,35 @@ export class GUI implements IGUI {
   }
 
 
-  private rotateHelper(root: Bone, curr: Bone, axis: Vec3, angle: number): void 
+  private rotateHelper(root: Bone, curr: Bone, rot_qat: Quat): void 
   {
     let root_pos = (new Vec4([curr.position.x - root.position.x, curr.position.y - root.position.y, curr.position.z - root.position.z, 1]));
     let root_end = (new Vec4([curr.endpoint.x - root.position.x, curr.endpoint.y - root.position.y, curr.endpoint.z - root.position.z, 1]));
 
-    let rot_qat: Quat = Quat.fromAxisAngle(axis, angle);
     root_pos = rot_qat.toMat4().multiplyVec4(root_pos);
     root_end = rot_qat.toMat4().multiplyVec4(root_end);
 
     curr.rotation = rot_qat.multiply(curr.rotation);
     curr.position = (new Vec3(root_pos.xyz)).add(root.position);
     curr.endpoint = (new Vec3(root_end.xyz)).add(root.position);
+
+    if(curr.rotations.has(root))
+    {
+      curr.rotations.delete(root);
+      curr.rotations.set(root, rot_qat);
+    }
+    else
+      curr.rotations.set(root, rot_qat)
   }
 
-  private recursionHelper(root: Bone, bones: Bone[], curr: Bone, axis: Vec3, angle: number): void 
+  private rotateRecursive(root: Bone, bones: Bone[], curr: Bone, axis: Vec3, angle: number): void 
   {
-    this.rotateHelper(root, curr, axis, angle) //do work: rotate me
+    this.rotateHelper(root, curr, Quat.fromAxisAngle(axis, angle)) //do work: rotate me
     let children: number[] = curr.children;
     if(children.length != 0)
       for(var i = 0; i < children.length; i++)
       {
-        this.recursionHelper(root, bones, bones[children[i]], axis, angle); // recursive step: do work on my children
+        this.rotateRecursive(root, bones, bones[children[i]], axis, angle); // recursive step: do work on my children
       }
     
   }
@@ -239,22 +246,27 @@ export class GUI implements IGUI {
         {
           //axis in its original direction, assume position = (0, 0, 0);
           axis.normalize();
-          this.recursionHelper(cur_bone, bone_forest, bone, axis, angle);
+          this.rotateRecursive(cur_bone, bone_forest, bone, axis, angle);
           return; // found, so we're done here.
         }
       }
     }
   }
 
-  private translateHelper(bones: Bone[], curr: Bone, trans: Vec3)
+  private translateHelper(curr: Bone, trans: Vec3)
   {
     curr.position = Vec3.sum(curr.position, trans);
     curr.endpoint = Vec3.sum(curr.endpoint, trans);
     curr.translation = Vec3.sum(curr.translation, trans);
+  }
+
+  private translateRecursive(bones: Bone[], curr: Bone, trans: Vec3)
+  {
+    this.translateHelper(curr, trans);
     let children: number[] = curr.children;
     if(children.length != 0)
       for(var i = 0; i < children.length; i++)
-        this.translateHelper(bones, bones[children[i]], trans)
+        this.translateRecursive(bones, bones[children[i]], trans)
   }
 
 
@@ -270,14 +282,12 @@ export class GUI implements IGUI {
         let cur_bone = bone_forest[j];
         if(cur_bone.position == bone.position && cur_bone.endpoint == bone.endpoint)
         {
-          this.translateHelper(bone_forest, bone, trans);
+          this.translateRecursive(bone_forest, bone, trans);
           return; // found, so we're done here.
         }
       }
     }
   }
-
-
 
   private getRayFromScreen(x: number, y: number): Vec3
   {
@@ -291,8 +301,6 @@ export class GUI implements IGUI {
     var norm = (new Vec3(ray_world.xyz)).normalize();
     return norm;
   }
-
-  
 
   private intersectsBone(camera_pos: Vec3, direction: Vec3) : Bone
   {
@@ -315,6 +323,72 @@ export class GUI implements IGUI {
       }
     }
     return minBone;
+  }
+
+  public animate(): void
+  {
+    if(this.keyframes.length < 1)
+    {
+      console.log("ERROR: Can't animate on less than one keyframe...");
+      return;
+    }
+    var cur_index = Math.ceil(this.time);
+    var rel_time = this.time - Math.floor(this.time);
+    console.log("CURR TIME: " + this.time + " Index: " + cur_index + " rel_time: " + rel_time);
+    if(rel_time < 0 || rel_time > 1)
+    {
+      console.log("PANIC: rel_time out of range at time " + this.time + " rel_time = " + rel_time);
+      return;
+    }
+
+    //
+    var next_frame = this.keyframes[cur_index];
+    var cur_frame = this.keyframes[cur_index - 1];
+
+    
+    var meshes = this.animation.getScene().meshes;
+    for(var i = 0; i < meshes.length; i++)
+    {
+        var bone_forest = meshes[i].bones;
+        for(var j = 0; j < bone_forest.length; j++)
+        {
+          var cur_bone = bone_forest[j];
+          console.log("Bone Index: " + j);
+
+          let prev_bone = cur_frame.get_bone(i, j);
+          let prev_pos = cur_frame.get_pos(i, j);
+          let prev_end = cur_frame.get_end(i, j);
+          let prev_rot = cur_frame.get_rot(i, j);
+          let prev_trans = cur_frame.get_trans(i, j);
+
+          console.log("prev pos " + prev_pos.xyz);
+          console.log("prev end " + prev_end.xyz);
+          console.log("prev rot " + prev_rot.xyzw);
+
+          let all_rots = next_frame.get_bone(i, j).rotations;
+          all_rots.forEach((key, value) =>
+          {
+            console.log("next rot " + key.xyzw);
+            console.log("next root " + value.position.xyz);
+  
+            let d_rot = Quat.slerpShort(prev_rot, key.copy(), rel_time);
+            this.rotateHelper(value , prev_bone, d_rot);
+          });
+          let d_trans = Vec3.difference(next_frame.get_trans(i, j), prev_trans).scale(rel_time);
+          this.translateHelper(prev_bone, d_trans);
+
+          cur_bone.position = prev_bone.position;
+          cur_bone.endpoint = prev_bone.endpoint;
+          cur_bone.rotation = prev_bone.rotation;
+          cur_bone.translation = prev_bone.translation;
+
+
+          console.log("cur pos " + cur_bone.position.xyz);
+          console.log("cur end " + cur_bone.endpoint.xyz);
+          console.log("cur rot " + cur_bone.rotation.xyzw);
+          console.log("cur trans " + cur_bone.translation.xyz)
+        }
+    }
   }
 
   /**

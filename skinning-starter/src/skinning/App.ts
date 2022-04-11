@@ -296,6 +296,10 @@ export class SkinningAnimation extends CanvasAnimation {
 
     // TODO
     // If the mesh is animating, probably you want to do some updating of the skeleton state here
+    if(this.getGUI().mode == Mode.playback)
+    {
+      this.getGUI().animate();
+    }
     
     // draw the status message
     if (this.ctx2) {
@@ -304,8 +308,6 @@ export class SkinningAnimation extends CanvasAnimation {
         this.ctx2.fillText(this.getGUI().getModeString(), 50, 710);
       }
     }
-
-
 
     // Drawing
     const gl: WebGLRenderingContext = this.ctx;
