@@ -207,9 +207,14 @@ export class GUI implements IGUI {
     if(!ref && this.mode == Mode.edit && root.position.equals(curr.position) && root.endpoint.equals(curr.endpoint))
     {
       curr.orientation = rot_copy.multiply(curr.orientation);
+      console.log("Bone Index: " + curr.index);
+      console.log("orientation: " + curr.orientation.xyzw)
+
     }
-    if(!ref)
+    if(!ref || curr.animated)
+    {
       ref = curr;
+    }
     let root_pos = (new Vec4([ref.position.x - root.position.x, ref.position.y - root.position.y, ref.position.z - root.position.z, 1]));
     let root_end = (new Vec4([ref.endpoint.x - root.position.x, ref.endpoint.y - root.position.y, ref.endpoint.z - root.position.z, 1]));
 
@@ -219,17 +224,22 @@ export class GUI implements IGUI {
     curr.rotation = rot_qat.multiply(ref.rotation);
     curr.position = Vec3.sum((new Vec3(root_pos.xyz)), (root.position));
     curr.endpoint = Vec3.sum((new Vec3(root_end.xyz)), (root.position));
-
+    curr.animated = true;
   }
 
   private rotateRecursive(root: Bone, bones: Bone[], curr: Bone, rot_qat: Quat, ref?: Bone ,ref_forest?: Bone[]): void 
   { 
     var rot_copy1 = rot_qat.copy();
     var rot_copy2 = rot_qat.copy();
+    
     if(!ref && !ref_forest)
       this.rotateHelper(root, curr, rot_copy1) //do work: rotate me
-    else
-      this.rotateHelper(root, curr, rot_copy1, ref) 
+    else 
+    {
+      if(curr.animated && root.position.equals(ref.position) && root.endpoint.equals(ref.endpoint))
+          root = curr.copy();
+      this.rotateHelper(root, curr, rot_copy1, ref)
+    }
     let children: number[] = curr.children;
     if(children.length != 0)
       for(var i = 0; i < children.length; i++)
@@ -355,17 +365,18 @@ export class GUI implements IGUI {
     var next_frame = this.keyframes[cur_index];
     var cur_frame = this.keyframes[cur_index - 1];
 
-    console.log("********* CUR FRAME *********** ")
-    cur_frame.print();
-    console.log("********* NEXT FRAME *********** ")
-    next_frame.print();
+    // console.log("********* CUR FRAME *********** ")
+    // cur_frame.print();
+    // console.log("********* NEXT FRAME *********** ")
+    // next_frame.print();
     
     var meshes = this.animation.getScene().meshes;
-    for(var i = 0; i < meshes.length; i++)
+
+    for(let i = 0; i < meshes.length; i++)
     {
         var bone_forest = meshes[i].bones;
         let prev_forest = cur_frame.get_forest(i);
-        for(var j = 0; j < bone_forest.length; j++)
+        for(let j = 0; j < bone_forest.length; j++)
         {
           var cur_bone = bone_forest[j];
           console.log("Animating Bone " + j);
@@ -401,6 +412,18 @@ export class GUI implements IGUI {
           this.translateHelper(prev_bone, d_trans);
         }
     }
+
+    // reset state
+    for(let i = 0; i < meshes.length; i++)
+    {
+        var bone_forest = meshes[i].bones;
+        for(let j = 0; j < bone_forest.length; j++)
+        {
+          var cur_bone = bone_forest[j];
+          cur_bone.animated = false;
+        }
+    }
+
   }
 
   /**
@@ -694,10 +717,10 @@ export class GUI implements IGUI {
             for(var b = 0; b < meshes[m].bones.length; b++)
             {
               var cur_bone = meshes[m].bones[b];
-              cur_bone.position = this.keyframes[0].get_pos(m ,b).copy();
-              cur_bone.endpoint = this.keyframes[0].get_end(m ,b).copy();
-              cur_bone.rotation = this.keyframes[0].get_rot(m ,b).copy();
-              cur_bone.orientation = this.keyframes[0].get_bone(m ,b).orientation.copy();
+              cur_bone.position = this.keyframes[0].get_pos(m ,b);
+              cur_bone.endpoint = this.keyframes[0].get_end(m ,b);
+              cur_bone.rotation = this.keyframes[0].get_rot(m ,b);
+              cur_bone.orientation = this.keyframes[0].get_bone(m ,b).orientation;
               cur_bone.translation = this.keyframes[0].get_trans(m ,b);
             }
           }

@@ -48,6 +48,7 @@ export class Bone {
   public translation: Vec3; // all translations (excluding from rotation matrices) done so far
 
   public orientation: Quat; // orientation of this joint (and its children...)
+  public animated: boolean; // has this joint already been animated in animate()? (compound transformations)
   
   public initialPosition: Vec3; // position of the bone's joint *in world coordinates*
   public initialEndpoint: Vec3; // position of the bone's second (non-joint) endpoint, in world coordinates
@@ -69,6 +70,7 @@ export class Bone {
     this.translation = new Vec3();
 
     this.orientation = (new Quat()).setIdentity();
+    this.animated = false;
 
     this.offset = bone.offset;
     this.initialPosition = bone.initialPosition.copy();
