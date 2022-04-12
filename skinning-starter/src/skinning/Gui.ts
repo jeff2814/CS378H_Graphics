@@ -6,6 +6,7 @@ import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { RGBA_ASTC_8x5_Format } from "../lib/threejs/src/constants.js";
 import { Cylinder, KeyFrame } from "./Utils.js";
+import { MeshStandardMaterial } from "../lib/threejs/src/Three.js";
 
 const RADIUS = .2;
 const RAY_EPSILON = 1e-8;
@@ -196,6 +197,21 @@ export class GUI implements IGUI {
       if (this.time >= this.getMaxTime()) {
         this.time = 0;
         this.mode = Mode.edit;
+        var final = this.keyframes[this.num_keyframes - 1];
+        var meshes = this.animation.getScene().meshes;
+        for(let m = 0; m < meshes.length; m++)
+        {
+          var forest = meshes[m].bones;
+          for(let b = 0; b < forest.length; b++)
+          {
+            var cur_bone = meshes[m].bones[b];
+            cur_bone.position = final.get_pos(m ,b);
+            cur_bone.endpoint = final.get_end(m ,b);
+            cur_bone.rotation = final.get_rot(m ,b);
+            cur_bone.orientation = final.get_bone(m ,b).orientation;
+            cur_bone.translation = final.get_trans(m ,b);
+          }
+        }
       }
     }
   }
