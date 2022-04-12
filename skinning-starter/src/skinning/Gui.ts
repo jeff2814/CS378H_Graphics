@@ -223,8 +223,8 @@ export class GUI implements IGUI {
     if(!ref && this.mode == Mode.edit && root.position.equals(curr.position) && root.endpoint.equals(curr.endpoint))
     {
       curr.orientation = rot_copy.multiply(curr.orientation);
-      console.log("Bone Index: " + curr.index);
-      console.log("orientation: " + curr.orientation.xyzw)
+      // console.log("Bone Index: " + curr.index);
+      // console.log("orientation: " + curr.orientation.xyzw)
 
     }
     if(!ref || curr.animated)
@@ -395,7 +395,7 @@ export class GUI implements IGUI {
         for(let j = 0; j < bone_forest.length; j++)
         {
           var cur_bone = bone_forest[j];
-          console.log("Animating Bone " + j);
+          //console.log("Animating Bone " + j);
 
           let prev_bone = cur_frame.get_bone(i, j).copy();
           let prev_pos = cur_frame.get_pos(i, j).copy();
@@ -411,12 +411,9 @@ export class GUI implements IGUI {
           let next_trans = next_frame.get_trans(i, j).copy();
           let next_orient = next_bone.orientation.copy();
 
-          console.log("prev orient: " + prev_orient.xyzw);
-          console.log("next orient: " + next_orient.xyzw)
-
           if(prev_orient.equals(next_orient)) 
           {
-            console.log("Skip");
+            //console.log("Skip");
           }
           else 
           {
@@ -713,11 +710,11 @@ export class GUI implements IGUI {
             // Add keyframe
             this.num_keyframes++;
             this.keyframes.push(new KeyFrame(this.animation.getScene()));
-            for(var ki = 0; ki < this.keyframes.length; ki++)
-            {
-              console.log("******* KEYFRAME #" + ki + " *********");
-              this.keyframes[ki].print();
-            }
+            // for(var ki = 0; ki < this.keyframes.length; ki++)
+            // {
+            //   console.log("******* KEYFRAME #" + ki + " *********");
+            //   this.keyframes[ki].print();
+            // }
         }
         break;
       }      
