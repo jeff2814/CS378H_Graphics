@@ -125,8 +125,8 @@ export class KeyFrame {
             }
         }
 
-        console.log("CONSTRUCTING KEYFRAME: ")
-        this.print();
+        // console.log("CONSTRUCTING KEYFRAME: ")
+        // this.print();
     }
 
     public print(): void 

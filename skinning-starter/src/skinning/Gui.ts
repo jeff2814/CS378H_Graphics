@@ -676,7 +676,7 @@ export class GUI implements IGUI {
         if(this.hovered_bone != null || this.selected_bone != null)
         {
           var to_roll = (this.selected_bone == null) ? this.hovered_bone : this.selected_bone;
-          let bone_axis = Vec3.difference(to_roll.position, to_roll.endpoint);
+          let bone_axis = Vec3.difference(to_roll.endpoint, to_roll.position);
           bone_axis = bone_axis.normalize();
           this.topDownBoneRotate(to_roll, bone_axis, GUI.rollSpeed);
         }
@@ -688,7 +688,7 @@ export class GUI implements IGUI {
         if(this.hovered_bone != null || this.selected_bone != null)
         {
           var to_roll = (this.selected_bone == null) ? this.hovered_bone : this.selected_bone;
-          let bone_axis = Vec3.difference(to_roll.endpoint, to_roll.position);
+          let bone_axis = Vec3.difference(to_roll.position, to_roll.endpoint);
           bone_axis = bone_axis.normalize();
           this.topDownBoneRotate(to_roll, bone_axis, GUI.rollSpeed);
         }
