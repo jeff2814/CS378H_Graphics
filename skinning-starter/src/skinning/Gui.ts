@@ -289,11 +289,13 @@ export class GUI implements IGUI {
     }
   }
 
-  private translateHelper(curr: Bone, trans: Vec3)
+  private translateHelper(curr: Bone, trans: Vec3, ptr?: Bone)
   {
-    curr.position = Vec3.sum(curr.position, trans);
-    curr.endpoint = Vec3.sum(curr.endpoint, trans);
-    curr.translation = Vec3.sum(curr.translation, trans);
+    if(!ptr)
+      ptr = curr;
+    ptr.position = Vec3.sum(curr.position, trans);
+    ptr.endpoint = Vec3.sum(curr.endpoint, trans);
+    ptr.translation = Vec3.sum(curr.translation, trans);
   }
 
   private translateRecursive(bones: Bone[], curr: Bone, trans: Vec3)
@@ -421,8 +423,11 @@ export class GUI implements IGUI {
             this.rotateRecursive(prev_bone, bone_forest, cur_bone, d_orient.copy(), prev_bone, prev_forest);
           }
           
-          let d_trans = Vec3.difference(next_frame.get_trans(i, j), prev_trans).scale(rel_time);
-          this.translateHelper(prev_bone, d_trans);
+          let d_trans = Vec3.difference(next_trans, prev_trans).scale(rel_time);
+          if(next_trans.equals(prev_trans))
+          { /*console.log("Skip Trans ")*/}
+          else
+            this.translateHelper(prev_bone, d_trans, cur_bone);
         }
     }
 
