@@ -103,20 +103,63 @@ export class Cylinder {
   }
 
 export class KeyFrame {
-    public cur_scene: CLoader;
     public meshes: Mesh[];
 
     constructor(scene: CLoader) 
     {
-        this.cur_scene = scene;
+        if(scene == null)
+            return;
         this.meshes = [];
 
         // copy over the initial state of the keyframe, not a pointer as it animates
-        var meshes = this.cur_scene.meshes;
+        var meshes = scene.meshes;
         for(var i = 0; i < meshes.length; i++)
         {
-            this.meshes.push(meshes[i].copy())
+            var cur_mesh = meshes[i].copy();
+            this.meshes.push(cur_mesh)
+            for(var j = 0; j < cur_mesh.bones.length; j++)
+            {
+                var cur_bone =  meshes[i].bones[j].copy()
+                cur_bone.position = new Vec3( meshes[i].bones[j].position.xyz)
+                cur_bone.endpoint = new Vec3( meshes[i].bones[j].endpoint.xyz)
+            }
         }
+
+        console.log("CONSTRUCTING KEYFRAME: ")
+        this.print();
+    }
+
+    public print(): void 
+    {
+        var meshes = this.meshes;
+        for(var i = 0; i < meshes.length; i++)
+        {
+            var bone_forest = meshes[i].bones;
+            for(var j = 0; j < bone_forest.length; j++)
+            {
+                var cur_bone = bone_forest[j];
+                console.log("Bone Index " + j);
+                console.log("Bone Pos: " + cur_bone.position.xyz);
+                console.log("Bone End: " + cur_bone.endpoint.xyz);
+                console.log("Bone Rot " + cur_bone.rotation.xyzw);
+                console.log("Bone Orient " + cur_bone.orientation.xyzw);
+                console.log("Bone Trans " + cur_bone.translation.xyz)
+            }
+        }
+    }
+
+    public copy(): KeyFrame 
+    {
+        var ret = new KeyFrame(null);
+        ret.meshes = [];
+        for(var i = 0; i < this.meshes.length; i++)
+            ret.meshes.push(this.meshes[i].copy())
+        return ret;
+    }
+
+    public get_forest(bf_index: number): Bone[]
+    {
+        return this.meshes[bf_index].bones;
     }
 
     public get_bone(bf_index: number, b_index:number): Bone

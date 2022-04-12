@@ -47,7 +47,7 @@ export class Bone {
   public rotation: Quat; // current orientation of the joint *with respect to world coordinates*
   public translation: Vec3; // all translations (excluding from rotation matrices) done so far
 
-  public rotations: Map<Bone, Quat>;
+  public orientation: Quat; // orientation of this joint (and its children...)
   
   public initialPosition: Vec3; // position of the bone's joint *in world coordinates*
   public initialEndpoint: Vec3; // position of the bone's second (non-joint) endpoint, in world coordinates
@@ -68,7 +68,7 @@ export class Bone {
     this.rotation = bone.rotation.copy();
     this.translation = new Vec3();
 
-    this.rotations = new Map<Bone, Quat>();
+    this.orientation = (new Quat()).setIdentity();
 
     this.offset = bone.offset;
     this.initialPosition = bone.initialPosition.copy();
@@ -102,7 +102,7 @@ export class Bone {
     ret.rotation = this.rotation.copy();
     ret.translation = this.translation.copy();
 
-    ret.rotations = new Map<Bone, Quat>(this.rotations);
+    ret.orientation = this.orientation.copy();
 
     ret.initialPosition = this.initialPosition.copy();
     ret.initialEndpoint = this.initialEndpoint.copy();
@@ -131,6 +131,9 @@ export class Mesh {
 
   constructor(mesh: MeshLoader) 
   {
+    if(mesh == null)
+      return;
+
     this.loader = mesh;
     this.geometry = new MeshGeometry(mesh.geometry);
     this.worldMatrix = mesh.worldMatrix.copy();
@@ -184,7 +187,7 @@ export class Mesh {
 
   public copy(): Mesh 
   {
-    var ret: Mesh = new Mesh(this.loader);
+    var ret: Mesh = new Mesh(null);
 
     ret.worldMatrix = this.worldMatrix.copy();
     ret.rotation = this.rotation.copy();
@@ -200,8 +203,19 @@ export class Mesh {
       ret.boneIndices.push(this.boneIndices[j]);
     }
 
-    ret.bonePositions = new Float32Array(this.bonePositions);
-    ret.boneIndexAttribute = new Float32Array(this.boneIndexAttribute);
+    ret.bonePositions = new Float32Array(this.bonePositions.length);
+
+    for(var x = 0; x < this.bonePositions.length; x++)
+    {
+      ret.bonePositions[x] = this.bonePositions[x];
+    }
+
+    ret.boneIndexAttribute = new Float32Array(this.boneIndexAttribute.length);
+
+    for(var y = 0; y < this.boneIndexAttribute.length; y++)
+    {
+      ret.boneIndexAttribute[y] = this.boneIndexAttribute[y];
+    }
     return ret;
   }
 }

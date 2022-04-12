@@ -42,6 +42,7 @@ export class GUI implements IGUI {
 
   private camera: Camera;
   private dragging: boolean;
+  private dragging_cam: boolean;
   private fps: boolean;
   private prevX: number;
   private prevY: number;
@@ -181,10 +182,11 @@ export class GUI implements IGUI {
 
     let x = mouse.offsetX;
     let y = mouse.offsetY;
-    console.log("X: " + x + " Y: " + y);
+    //console.log("X: " + x + " Y: " + y);
     var ray = this.getRayFromScreen(x, y);
     this.selected_bone = this.intersectsBone(this.camera.pos(), ray);
-    if(this.selected_bone != null)
+    this.dragging_cam = this.selected_bone == null;
+    if(!this.dragging_cam)
       console.log("Bone selected. Initiating drag/rotate.");   
   }
 
@@ -199,35 +201,43 @@ export class GUI implements IGUI {
   }
 
 
-  private rotateHelper(root: Bone, curr: Bone, rot_qat: Quat): void 
+  private rotateHelper(root: Bone, curr: Bone, rot_qat: Quat, ref?: Bone): void 
   {
-    let root_pos = (new Vec4([curr.position.x - root.position.x, curr.position.y - root.position.y, curr.position.z - root.position.z, 1]));
-    let root_end = (new Vec4([curr.endpoint.x - root.position.x, curr.endpoint.y - root.position.y, curr.endpoint.z - root.position.z, 1]));
+    let rot_copy = rot_qat.copy();
+    if(!ref && this.mode == Mode.edit && root.position.equals(curr.position) && root.endpoint.equals(curr.endpoint))
+    {
+      curr.orientation = rot_copy.multiply(curr.orientation);
+    }
+    if(!ref)
+      ref = curr;
+    let root_pos = (new Vec4([ref.position.x - root.position.x, ref.position.y - root.position.y, ref.position.z - root.position.z, 1]));
+    let root_end = (new Vec4([ref.endpoint.x - root.position.x, ref.endpoint.y - root.position.y, ref.endpoint.z - root.position.z, 1]));
 
     root_pos = rot_qat.toMat4().multiplyVec4(root_pos);
     root_end = rot_qat.toMat4().multiplyVec4(root_end);
 
-    curr.rotation = rot_qat.multiply(curr.rotation);
-    curr.position = (new Vec3(root_pos.xyz)).add(root.position);
-    curr.endpoint = (new Vec3(root_end.xyz)).add(root.position);
+    curr.rotation = rot_qat.multiply(ref.rotation);
+    curr.position = Vec3.sum((new Vec3(root_pos.xyz)), (root.position));
+    curr.endpoint = Vec3.sum((new Vec3(root_end.xyz)), (root.position));
 
-    if(curr.rotations.has(root))
-    {
-      curr.rotations.delete(root);
-      curr.rotations.set(root, rot_qat);
-    }
-    else
-      curr.rotations.set(root, rot_qat)
   }
 
-  private rotateRecursive(root: Bone, bones: Bone[], curr: Bone, axis: Vec3, angle: number): void 
-  {
-    this.rotateHelper(root, curr, Quat.fromAxisAngle(axis, angle)) //do work: rotate me
+  private rotateRecursive(root: Bone, bones: Bone[], curr: Bone, rot_qat: Quat, ref?: Bone ,ref_forest?: Bone[]): void 
+  { 
+    var rot_copy1 = rot_qat.copy();
+    var rot_copy2 = rot_qat.copy();
+    if(!ref && !ref_forest)
+      this.rotateHelper(root, curr, rot_copy1) //do work: rotate me
+    else
+      this.rotateHelper(root, curr, rot_copy1, ref) 
     let children: number[] = curr.children;
     if(children.length != 0)
       for(var i = 0; i < children.length; i++)
       {
-        this.rotateRecursive(root, bones, bones[children[i]], axis, angle); // recursive step: do work on my children
+        if(!ref && !ref_forest)
+          this.rotateRecursive(root, bones, bones[children[i]], rot_copy2); // recursive step: do work on my children
+        else
+          this.rotateRecursive(root, bones, bones[children[i]], rot_copy2, ref_forest[children[i]], ref_forest); // recursive step: do work on my children
       }
     
   }
@@ -246,7 +256,7 @@ export class GUI implements IGUI {
         {
           //axis in its original direction, assume position = (0, 0, 0);
           axis.normalize();
-          this.rotateRecursive(cur_bone, bone_forest, bone, axis, angle);
+          this.rotateRecursive(cur_bone, bone_forest, bone, Quat.fromAxisAngle(axis, angle));
           return; // found, so we're done here.
         }
       }
@@ -345,48 +355,50 @@ export class GUI implements IGUI {
     var next_frame = this.keyframes[cur_index];
     var cur_frame = this.keyframes[cur_index - 1];
 
+    console.log("********* CUR FRAME *********** ")
+    cur_frame.print();
+    console.log("********* NEXT FRAME *********** ")
+    next_frame.print();
     
     var meshes = this.animation.getScene().meshes;
     for(var i = 0; i < meshes.length; i++)
     {
         var bone_forest = meshes[i].bones;
+        let prev_forest = cur_frame.get_forest(i);
         for(var j = 0; j < bone_forest.length; j++)
         {
           var cur_bone = bone_forest[j];
-          console.log("Bone Index: " + j);
+          console.log("Animating Bone " + j);
 
-          let prev_bone = cur_frame.get_bone(i, j);
-          let prev_pos = cur_frame.get_pos(i, j);
-          let prev_end = cur_frame.get_end(i, j);
-          let prev_rot = cur_frame.get_rot(i, j);
-          let prev_trans = cur_frame.get_trans(i, j);
+          let prev_bone = cur_frame.get_bone(i, j).copy();
+          let prev_pos = cur_frame.get_pos(i, j).copy();
+          let prev_end = cur_frame.get_end(i, j).copy();
+          let prev_rot = cur_frame.get_rot(i, j).copy();
+          let prev_trans = cur_frame.get_trans(i, j).copy();
+          let prev_orient = prev_bone.orientation.copy();   
 
-          console.log("prev pos " + prev_pos.xyz);
-          console.log("prev end " + prev_end.xyz);
-          console.log("prev rot " + prev_rot.xyzw);
+          let next_bone = next_frame.get_bone(i, j).copy();
+          let next_pos = next_frame.get_pos(i, j).copy();
+          let next_end = next_frame.get_end(i, j).copy();
+          let next_rot = cur_frame.get_rot(i, j).copy();
+          let next_trans = next_frame.get_trans(i, j).copy();
+          let next_orient = next_bone.orientation.copy();
 
-          let all_rots = next_frame.get_bone(i, j).rotations;
-          all_rots.forEach((key, value) =>
+          console.log("prev orient: " + prev_orient.xyzw);
+          console.log("next orient: " + next_orient.xyzw)
+
+          if(prev_orient.equals(next_orient)) 
           {
-            console.log("next rot " + key.xyzw);
-            console.log("next root " + value.position.xyz);
-  
-            let d_rot = Quat.slerpShort(prev_rot, key.copy(), rel_time);
-            this.rotateHelper(value , prev_bone, d_rot);
-          });
+            console.log("Skip");
+          }
+          else 
+          {
+            let d_orient = Quat.slerp((new Quat).setIdentity(), prev_orient.inverse().multiply(next_orient), rel_time);
+            this.rotateRecursive(prev_bone, bone_forest, cur_bone, d_orient.copy(), prev_bone, prev_forest);
+          }
+          
           let d_trans = Vec3.difference(next_frame.get_trans(i, j), prev_trans).scale(rel_time);
           this.translateHelper(prev_bone, d_trans);
-
-          cur_bone.position = prev_bone.position;
-          cur_bone.endpoint = prev_bone.endpoint;
-          cur_bone.rotation = prev_bone.rotation;
-          cur_bone.translation = prev_bone.translation;
-
-
-          console.log("cur pos " + cur_bone.position.xyz);
-          console.log("cur end " + cur_bone.endpoint.xyz);
-          console.log("cur rot " + cur_bone.rotation.xyzw);
-          console.log("cur trans " + cur_bone.translation.xyz)
         }
     }
   }
@@ -407,20 +419,19 @@ export class GUI implements IGUI {
     var ray_curr = this.getRayFromScreen(mouse.screenX, mouse.screenY);
     var ray_prev = this.getRayFromScreen(this.prevX, this.prevY);
 
-    if (this.dragging) {
+    const dx = mouse.screenX - this.prevX;
+    const dy = mouse.screenY - this.prevY;
+    
+    this.prevX = mouse.screenX;
+    this.prevY = mouse.screenY;
 
-      const dx = mouse.screenX - this.prevX;
-      const dy = mouse.screenY - this.prevY;
-      
-      this.prevX = mouse.screenX;
-      this.prevY = mouse.screenY;
+    /* Left button, or primary button */
+    const mouseDir: Vec3 = this.camera.right();
+    mouseDir.scale(-dx);
+    mouseDir.add(this.camera.up().scale(dy));
+    mouseDir.normalize();
 
-      /* Left button, or primary button */
-      const mouseDir: Vec3 = this.camera.right();
-      mouseDir.scale(-dx);
-      mouseDir.add(this.camera.up().scale(dy));
-      mouseDir.normalize();
-
+    if (this.dragging && this.dragging_cam) {
 
       if (dx === 0 && dy === 0) {
         return;
@@ -451,6 +462,7 @@ export class GUI implements IGUI {
           break;
         }
       }
+      return;
     }
     
     // (dx, dy) -> some vector, angle b/w bone & vector is what we want
@@ -563,6 +575,7 @@ export class GUI implements IGUI {
     // TODO
     // Maybe your bone highlight/dragging logic needs to do stuff here too
     this.selected_bone = null;
+    this.dragging_cam = false;
   }
 
   /**
@@ -661,6 +674,11 @@ export class GUI implements IGUI {
             // Add keyframe
             this.num_keyframes++;
             this.keyframes.push(new KeyFrame(this.animation.getScene()));
+            for(var ki = 0; ki < this.keyframes.length; ki++)
+            {
+              console.log("******* KEYFRAME #" + ki + " *********");
+              this.keyframes[ki].print();
+            }
         }
         break;
       }      
@@ -669,6 +687,20 @@ export class GUI implements IGUI {
         {
           this.mode = Mode.playback;
           this.time = 0;
+
+          let meshes = this.animation.getScene().meshes;
+          for(var m = 0; m < meshes.length; m++)
+          {
+            for(var b = 0; b < meshes[m].bones.length; b++)
+            {
+              var cur_bone = meshes[m].bones[b];
+              cur_bone.position = this.keyframes[0].get_pos(m ,b).copy();
+              cur_bone.endpoint = this.keyframes[0].get_end(m ,b).copy();
+              cur_bone.rotation = this.keyframes[0].get_rot(m ,b).copy();
+              cur_bone.orientation = this.keyframes[0].get_bone(m ,b).orientation.copy();
+              cur_bone.translation = this.keyframes[0].get_trans(m ,b);
+            }
+          }
         } else if (this.mode === Mode.playback) {
           this.mode = Mode.edit;
         }
