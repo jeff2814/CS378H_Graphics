@@ -164,33 +164,6 @@ export class GUI implements IGUI {
     return this.camera.projMatrix();
   }
 
-  /**
-   * Callback function for the start of a drag event.
-   * @param mouse
-   */
-  public dragStart(mouse: MouseEvent): void {
-    if (mouse.offsetY > 600 || mouse.offsetX > 800) {
-      // outside the main panel
-      return;
-    }
-    
-    // TODO
-    // Some logic to rotate the bones, instead of moving the camera, if there is a currently highlighted bone
-    
-    this.dragging = true;
-    this.prevX = mouse.screenX;
-    this.prevY = mouse.screenY;
-
-    let x = mouse.offsetX;
-    let y = mouse.offsetY;
-    //console.log("X: " + x + " Y: " + y);
-    var ray = this.getRayFromScreen(x, y);
-    this.selected_bone = this.intersectsBone(this.camera.pos(), ray);
-    this.dragging_cam = this.selected_bone == null;
-    if(!this.dragging_cam)
-      console.log("Bone selected. Initiating drag/rotate.");   
-  }
-
   public incrementTime(dT: number): void {
     if (this.mode === Mode.playback) {
       this.time += dT;
@@ -215,7 +188,6 @@ export class GUI implements IGUI {
       }
     }
   }
-
 
   private rotateHelper(root: Bone, curr: Bone, rot_qat: Quat, ref?: Bone): void 
   {
@@ -445,6 +417,39 @@ export class GUI implements IGUI {
   }
 
   /**
+   * Callback function for the start of a drag event.
+   * @param mouse
+   */
+   public dragStart(mouse: MouseEvent): void {
+    if (mouse.offsetX > 800)
+    {
+      console.log("On Side Panel, X: " + mouse.offsetX + " Y: " + mouse.offsetY);
+      //TODO: CHECK IF I AM CLICKING A KEYFRAME?
+    }
+
+    if (mouse.offsetY > 600) {
+      // outside the main panel
+      return;
+    }
+    
+    // TODO
+    // Some logic to rotate the bones, instead of moving the camera, if there is a currently highlighted bone
+    
+    this.dragging = true;
+    this.prevX = mouse.screenX;
+    this.prevY = mouse.screenY;
+
+    let x = mouse.offsetX;
+    let y = mouse.offsetY;
+    //console.log("X: " + x + " Y: " + y);
+    var ray = this.getRayFromScreen(x, y);
+    this.selected_bone = this.intersectsBone(this.camera.pos(), ray);
+    this.dragging_cam = this.selected_bone == null;
+    if(!this.dragging_cam)
+      console.log("Bone selected. Initiating drag/rotate.");   
+  }
+
+  /**
    * The callback function for a drag event.
    * This event happens after dragStart and
    * before dragEnd.
@@ -617,6 +622,9 @@ export class GUI implements IGUI {
     // Maybe your bone highlight/dragging logic needs to do stuff here too
     this.selected_bone = null;
     this.dragging_cam = false;
+
+    //console.log("Selected KeyFrame? ");
+    //TODO: HIGHLIGHT THE KEYFRAME HERE, SELECT IT
   }
 
   /**
@@ -745,6 +753,18 @@ export class GUI implements IGUI {
         } else if (this.mode === Mode.playback) {
           this.mode = Mode.edit;
         }
+        break;
+      }
+      case "Delete": {
+        console.log("Delete Select Frame:")
+        break;
+      }
+      case "KeyU": {
+        console.log("Update Selected Frame to Screen")
+        break;
+      }
+      case "Equal": {
+        console.log("Set Screen to Selected Frame")
         break;
       }
       default: {
