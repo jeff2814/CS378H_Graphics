@@ -7,6 +7,7 @@ QoL Changes from MS1:
     - removed many debug print statements
     - moved utility classes (Cylinder, KeyFrame) to Utils.ts 
     - bone.orientation: represents the bone's T_i matrix
+    - using the mouse to drag the camera over a bone will no longer select it 
 
 Animations:
     - keyframes[] data structure in Gui.ts: add a new Keyframe object on KeyK
