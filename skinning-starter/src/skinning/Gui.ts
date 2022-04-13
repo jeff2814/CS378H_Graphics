@@ -55,6 +55,8 @@ export class GUI implements IGUI {
 
   private num_keyframes: number;
   private keyframes: KeyFrame[];
+  private loop: boolean;
+  private boomerang: boolean;
 
   private animation: SkinningAnimation;
 
@@ -88,6 +90,8 @@ export class GUI implements IGUI {
     
     this.num_keyframes = 0;
     this.keyframes = [];
+    this.loop = false;
+    this.boomerang = false;
 
     this.animation = animation;
     
@@ -106,7 +110,13 @@ export class GUI implements IGUI {
   public getMaxTime(): number { 
     // TODO
     // The animation should stop after the last keyframe
-    return (this.num_keyframes > 1) ? this.num_keyframes - 1: 0;
+    if(this.num_keyframes <= 1)
+      return 0;
+    if(this.loop)
+      return this.num_keyframes;
+    if(this.boomerang)
+      return 2*(this.num_keyframes - 1);
+    return this.num_keyframes - 1;
   }
 
   /**
@@ -122,6 +132,8 @@ export class GUI implements IGUI {
 
     this.num_keyframes = 0;
     this.keyframes = [];
+    this.loop = false;
+    this.boomerang = false;
     
     this.camera = new Camera(
       new Vec3([0, 0, -6]),
@@ -169,6 +181,8 @@ export class GUI implements IGUI {
       this.time += dT;
       if (this.time >= this.getMaxTime()) {
         this.time = 0;
+        if(this.loop || this.boomerang) //loop logic
+          return;
         this.mode = Mode.edit;
         var final = this.keyframes[this.num_keyframes - 1];
         var meshes = this.animation.getScene().meshes;
@@ -342,7 +356,21 @@ export class GUI implements IGUI {
       console.log("ERROR: Can't animate on less than one keyframe...");
       return;
     }
-    var cur_index = Math.ceil(this.time);
+    var ceil_t = Math.ceil(this.time);
+    if(ceil_t == 0)
+      return;
+    var cur_index = ceil_t - 1;
+    var next_index = ceil_t;
+    if(ceil_t > this.num_keyframes - 1)
+    {
+      if(this.loop)
+        next_index = 0;
+      if(this.boomerang)
+      {
+        cur_index = this.getMaxTime() - cur_index;
+        next_index = this.getMaxTime() - next_index;
+      } 
+    }
     var rel_time = this.time - Math.floor(this.time);
     console.log("CURR TIME: " + this.time + " Index: " + cur_index + " rel_time: " + rel_time);
     if(rel_time < 0 || rel_time > 1)
@@ -352,8 +380,8 @@ export class GUI implements IGUI {
     }
 
     //
-    var next_frame = this.keyframes[cur_index];
-    var cur_frame = this.keyframes[cur_index - 1];
+    var next_frame = this.keyframes[next_index];
+    var cur_frame = this.keyframes[cur_index];
 
     // console.log("********* CUR FRAME *********** ")
     // cur_frame.print();
@@ -632,6 +660,7 @@ export class GUI implements IGUI {
    * @param key
    */
   public onKeydown(key: KeyboardEvent): void {
+    var keyBpressed = false;
     switch (key.code) {
       case "Digit1": {
         this.animation.setScene("/static/assets/skinning/split_cube.dae");
@@ -730,7 +759,16 @@ export class GUI implements IGUI {
             // }
         }
         break;
-      }      
+      }
+      case "KeyB": {
+        keyBpressed = true; // "hacky" way to bypass L logic
+        this.boomerang = (!this.boomerang);
+      }
+      case "KeyL": {
+        if(!keyBpressed)
+          this.loop = !(this.loop);
+        //don't break: go directly to playback logic :)
+      }     
       case "KeyP": {
         if (this.mode === Mode.edit && this.getNumKeyFrames() > 1)
         {
@@ -752,6 +790,8 @@ export class GUI implements IGUI {
           }
         } else if (this.mode === Mode.playback) {
           this.mode = Mode.edit;
+          this.loop = false;
+          this.boomerang = false;
         }
         break;
       }

@@ -1,0 +1,54 @@
+Virtual Mannequin Milestone 2:
+
+Partners: Allen Zheng (az5782), Jeffery Wu (jw48726)
+
+QoL Changes from MS1:
+    - more descriptive function names
+    - removed many debug print statements
+    - moved utility classes (Cylinder, KeyFrame) to Utils.ts 
+    - bone.orientation: represents the bone's T_i matrix
+
+Animations:
+    - keyframes[] data structure in Gui.ts: add a new Keyframe object on KeyK
+        - KeyFrame object represented by us: a deep copy of the current scene's meshes (and its attributes)
+            - .copy() functions in Mesh and Bone classes
+        - cleared on reset() (KeyR)
+    - On KeyP, prepare to animate by setting the current scene to the first frame and changing the mode/time.
+    - On draw() in App.ts, we animate() (in Gui.ts) if in playback Mode (set by KeyP)
+        - current time's integer part: indexes the array. current time's decimal part: time factor for interpolation
+        - on a per-bone basis, interpolate (slerp) from the current keyframe's T_i to the next
+            - orientation changes are applied recursively down the parent bone's children
+                -code reuse of rotateRecursive(), rotateHelper(), etc.
+            - edge case: a descendant bone was already changed by its ancestor. Then, slerp from where this left off instead
+            - the current GUI's scene is changed to reflect this
+    - When time is up on the animation or keyP pressed again, stop and update states to where we stopped.
+
+Keyframe Preview:
+    - TODO
+
+Keyframe Management:
+    - TODO
+
+Extra Credit:
+
+    - From MS1, we support transformations with a right click on highlighted bones.
+
+    - We added some other functionalities not listed on the spec, I will either ask to consider this in the final README or directly if this can be done:
+        - Shrink/Grow
+            - TODO: I plan on supporting growing/shrinking (scaling) the length of a joint. Descendants will have to be shifted as well (but not grown).
+        - Loop/Boomerang:
+            - Infinite looping animation settings that are stopped by user input of any of these keys (L, B, P). The logic is performed through index manipulation of the keyframe relative to time on GUI.animate().
+            - Loop: KeyL. An animation setting that will animate through the keyframes and return to the first in a loop.
+                - e.g: 0-1-2-3 -> 0-1-2-3-0-1-2-3-0-1-2-3-0...
+                - Sort of like .gif, will restart back to the initial frame.
+            - Boomerang: KeyB. An animation setting that will animate back-and-forth, reversing direction at each end.
+                - e.g: 0-1-2-3 -> 0-1-2-3-2-1-0-1-2-3-2-1-0...
+                - Sort of like Instagram's Boomerang App from 2016 (?) that would play then reverse a short clip. I don't know if that's still a thing
+    - Creative Scene:
+        - TODO: Fortnite Dances and other fun stuff. I will compile each frame on a Google Doc to show how to recreate them.
+
+        
+    
+
+        
+        
