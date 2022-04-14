@@ -372,7 +372,7 @@ export class GUI implements IGUI {
       } 
     }
     var rel_time = this.time - Math.floor(this.time);
-    console.log("CURR TIME: " + this.time + " Index: " + cur_index + " rel_time: " + rel_time);
+    //console.log("CURR TIME: " + this.time + " Index: " + cur_index + " rel_time: " + rel_time);
     if(rel_time < 0 || rel_time > 1)
     {
       console.log("PANIC: rel_time out of range at time " + this.time + " rel_time = " + rel_time);
