@@ -5,7 +5,7 @@ Partners: Allen Zheng (az5782), Jeffery Wu (jw48726)
 QoL Changes from MS1:
     - more descriptive function names
     - removed many debug print statements
-    - moved utility classes (Cylinder, KeyFrame) to Utils.ts 
+    - moved utility classes (Cylinder, KeyFrame) to Utils.ts
     - bone.orientation: represents the bone's T_i matrix
     - using the mouse to drag the camera over a bone will no longer select it 
 
