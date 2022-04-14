@@ -32,11 +32,9 @@ Keyframe Management:
 
 Extra Credit:
 
-    - From MS1, we support transformations with a right click on highlighted bones.
+    - From MS1, we support transformations with a right click on highlighted bones. We would like that feature to be considered extra credit on that part.
 
-    - We added some other functionalities not listed on the spec, I will either ask to consider this in the final README or directly if this can be done:
-        - Shrink/Grow
-            - TODO: I plan on supporting growing/shrinking (scaling) the length of a joint. Descendants will have to be shifted as well (but not grown).
+    - For fun , we added some other functionalities not listed on the spec, and we request that they also be considered for extra credit, if possible. We hope to make up some points from other projects.
         - Loop/Boomerang:
             - Infinite looping animation settings that are stopped by user input of any of these keys (L, B, P). The logic is performed through index manipulation of the keyframe relative to time on GUI.animate().
             - Loop: KeyL. An animation setting that will animate through the keyframes and return to the first in a loop.
@@ -46,7 +44,8 @@ Extra Credit:
                 - e.g: 0-1-2-3 -> 0-1-2-3-2-1-0-1-2-3-2-1-0...
                 - Sort of like Instagram's Boomerang App from 2016 (?) that would play then reverse a short clip. I don't know if that's still a thing
     - Creative Scene:
-        - TODO: Fortnite Dances and other fun stuff. I will compile each frame on a Google Doc to show how to recreate them.
+        - We actually use the above two features! 
+        - Please see the following doc: https://docs.google.com/document/d/1A3ThcnjApqg_KysVTjy3uVz8_3MLYbzWvMlpQHOf40Q/edit. Let us know if the YouTube links don't work!
 
         
     
