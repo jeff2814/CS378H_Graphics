@@ -25,10 +25,15 @@ Animations:
     - When time is up on the animation or keyP pressed again, stop and update states to where we stopped.
 
 Keyframe Preview:
-    - TODO
+    - Added texture to keyframe
+    - Render quad to display keyframe texture
+        - added depthbuffer
+    - Displays in top down order
 
 Keyframe Management:
-    - TODO
+    - Select keyframes by index with a set in GUI.ts
+    - Implemented delete, =, and update by updating keyframes list
+    - Can select multiple keyframes at a time and perform batch delete and update
 
 Extra Credit:
 
@@ -43,6 +48,7 @@ Extra Credit:
             - Boomerang: KeyB. An animation setting that will animate back-and-forth, reversing direction at each end.
                 - e.g: 0-1-2-3 -> 0-1-2-3-2-1-0-1-2-3-2-1-0...
                 - Sort of like Instagram's Boomerang App from 2016 (?) that would play then reverse a short clip. I don't know if that's still a thing
+    - Keyframe Management: Can perform batch updates and deletes!
     - Creative Scene:
         - We actually use the above two features! 
         - Please see the following doc: https://docs.google.com/document/d/1A3ThcnjApqg_KysVTjy3uVz8_3MLYbzWvMlpQHOf40Q/edit. Let us know if the YouTube links don't work!
