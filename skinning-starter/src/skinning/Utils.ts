@@ -155,6 +155,7 @@ export class KeyFrame {
     {
         var ret = new KeyFrame(null);
         ret.meshes = [];
+        ret.texture = this.texture;
         for(var i = 0; i < this.meshes.length; i++)
             ret.meshes.push(this.meshes[i].copy())
         return ret;

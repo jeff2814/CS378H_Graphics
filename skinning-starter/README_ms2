@@ -11,7 +11,7 @@ QoL Changes from MS1:
 
 Animations:
     - keyframes[] data structure in Gui.ts: add a new Keyframe object on KeyK
-        - KeyFrame object represented by us: a deep copy of the current scene's meshes (and its attributes)
+        - KeyFrame object represented by us: a deep copy of the current scene's meshes (and its attributes) and WebGLTexture.
             - .copy() functions in Mesh and Bone classes
         - cleared on reset() (KeyR)
     - On KeyP, prepare to animate by setting the current scene to the first frame and changing the mode/time.
