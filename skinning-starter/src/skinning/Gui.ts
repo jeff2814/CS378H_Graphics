@@ -751,7 +751,12 @@ export class GUI implements IGUI {
             // TODO
             // Add keyframe
             this.num_keyframes++;
-            this.keyframes.push(new KeyFrame(this.animation.getScene()));
+            var temp = new KeyFrame(this.animation)
+            this.keyframes.push(temp);
+            this.animation.view2 = this.animation.view1;
+            this.animation.view1 = this.animation.view0;
+            this.animation.view0 = temp.texture;
+
             // for(var ki = 0; ki < this.keyframes.length; ki++)
             // {
             //   console.log("******* KEYFRAME #" + ki + " *********");

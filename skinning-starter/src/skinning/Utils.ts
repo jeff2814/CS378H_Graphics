@@ -1,5 +1,6 @@
 import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { CLoader } from "./AnimationFileLoader.js";
+import { SkinningAnimation } from "./App.js";
 import { Bone, Mesh } from "./Scene.js";
 
 const RADIUS = .2;
@@ -104,13 +105,15 @@ export class Cylinder {
 
 export class KeyFrame {
     public meshes: Mesh[];
+    public texture: WebGLTexture;
 
-    constructor(scene: CLoader) 
+    constructor(animation: SkinningAnimation) 
     {
+        var scene = animation.getScene();
         if(scene == null)
             return;
         this.meshes = [];
-
+        this.texture = animation.curr;
         // copy over the initial state of the keyframe, not a pointer as it animates
         var meshes = scene.meshes;
         for(var i = 0; i < meshes.length; i++)

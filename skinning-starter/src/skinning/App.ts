@@ -13,13 +13,18 @@ import {
   skeletonFSText,
   skeletonVSText,
   sBackVSText,
-  sBackFSText
+  sBackFSText,
+  quadFSText,
+  quadVSText
 } from "./Shaders.js";
 import { Mat4, Vec4, Vec3 } from "../lib/TSM.js";
 import { CLoader } from "./AnimationFileLoader.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { Camera } from "../lib/webglutils/Camera.js";
 
+
+const targetTextureWidth = 200
+const targetTextureHeight = 150;
 export class SkinningAnimation extends CanvasAnimation {
   private gui: GUI;
   private millis: number;
@@ -39,7 +44,8 @@ export class SkinningAnimation extends CanvasAnimation {
 
   /* Scrub bar background rendering info */
   private sBackRenderPass: RenderPass;
-  
+
+  private quadRenderPass: RenderPass;
 
   /* Global Rendering Info */
   private lightPosition: Vec4;
@@ -48,6 +54,14 @@ export class SkinningAnimation extends CanvasAnimation {
   private canvas2d: HTMLCanvasElement;
   private ctx2: CanvasRenderingContext2D | null;
 
+  public targetTexture: WebGLTexture;
+  public textureArray: Uint32Array;
+  public fb: WebGLFramebuffer;
+
+  public curr: WebGLTexture;
+  public view0: WebGLTexture;
+  public view1: WebGLTexture;
+  public view2: WebGLTexture;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -78,7 +92,7 @@ export class SkinningAnimation extends CanvasAnimation {
 
     // Status bar
     this.sBackRenderPass = new RenderPass(this.extVAO, gl, sBackVSText, sBackFSText);
-    
+    this.quadRenderPass = new RenderPass(this.extVAO, gl, quadVSText, quadFSText);
     
     // TODO
     // Other initialization, for instance, for the bone highlighting
@@ -102,6 +116,36 @@ export class SkinningAnimation extends CanvasAnimation {
       this.setScene(this.loadedScene);
   }
 
+
+  public tempPop(): void {
+    var gl = this.ctx
+    const targetTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+      targetTextureWidth, targetTextureHeight, 0,
+      gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
+
+    const depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);  
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, targetTextureWidth, targetTextureHeight);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    this.drawScene(0, 0, targetTextureWidth, targetTextureHeight);  
+
+    this.curr = targetTexture
+  }
+
   public initGui(): void {
     
     // Status bar background
@@ -113,6 +157,11 @@ export class SkinningAnimation extends CanvasAnimation {
     this.sBackRenderPass.setDrawData(this.ctx.TRIANGLES, 6, this.ctx.UNSIGNED_INT, 0);
     this.sBackRenderPass.setup();
 
+    this.quadRenderPass.setIndexBufferData(new Uint32Array([1, 0, 2, 2, 0, 3]))
+    this.quadRenderPass.addAttribute("vertPosition", 2, this.ctx.FLOAT, false,
+      2 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, verts);
+    this.quadRenderPass.setDrawData(this.ctx.TRIANGLES, 6, this.ctx.UNSIGNED_INT, 0);
+    this.quadRenderPass.setup();
     }
 
   public initScene(): void {
@@ -319,7 +368,9 @@ export class SkinningAnimation extends CanvasAnimation {
     gl.frontFace(gl.CCW);
     gl.cullFace(gl.BACK);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null); // null is the default frame buffer
+    this.tempPop();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     this.drawScene(0, 200, 800, 600);    
 
     /* Draw status bar */
@@ -327,7 +378,33 @@ export class SkinningAnimation extends CanvasAnimation {
       gl.viewport(0, 0, 800, 200);
       this.sBackRenderPass.draw();   
       gl.viewport(800, 0, 320, 800);
-      this.sBackRenderPass.draw();      
+      this.sBackRenderPass.draw();
+      
+      gl.disable(gl.DEPTH_TEST);
+      // draw the preview windows
+      // this.drawScene(850, 50, targetTextureHeight, targetTextureWidth);
+      
+      if(this.view0) {
+        gl.viewport(850, 625, targetTextureWidth, targetTextureHeight);
+        this.quadRenderPass.addTexture(this.view0);
+        gl.getUniformLocation(this.quadRenderPass.shaderProgram, "texture");
+        this.quadRenderPass.draw();
+      }
+
+      if(this.view1) {
+        gl.viewport(850, 325, targetTextureWidth, targetTextureHeight);
+        this.quadRenderPass.addTexture(this.view1);
+        gl.getUniformLocation(this.quadRenderPass.shaderProgram, "texture");
+        this.quadRenderPass.draw();
+      }
+
+      if(this.view2) {
+        gl.viewport(850, 50, targetTextureWidth, targetTextureHeight);
+        this.quadRenderPass.addTexture(this.view2);
+        gl.getUniformLocation(this.quadRenderPass.shaderProgram, "texture");
+        this.quadRenderPass.draw();
+      }
+      gl.enable(gl.DEPTH_TEST);  
     }    
 
   }

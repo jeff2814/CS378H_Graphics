@@ -1,3 +1,26 @@
+export const quadVSText = `
+    precision mediump float;
+
+    attribute vec2 vertPosition;
+
+    varying highp vec2 vTextureCoord;
+
+    void main(void) {
+        gl_Position = vec4(vertPosition, 0.0, 1.0);
+        vTextureCoord = vec2((vertPosition.x + 1.0) / 2.0,  (vertPosition.y + 1.0) / 2.0);
+    }
+`;
+
+export const quadFSText = `
+    varying highp vec2 vTextureCoord;
+
+    uniform sampler2D texture;
+
+    void main(void) {
+        gl_FragColor = texture2D(texture, vTextureCoord);
+    }
+`;
+
 export const floorVSText = `
     precision mediump float;
 

@@ -7,7 +7,7 @@ export class RenderPass {
   /* Shader information */
   private vShader: string;
   private fShader: string;
-  private shaderProgram: WebGLProgram;
+  public shaderProgram: WebGLProgram;
 
   /* Attributes and indices */
   private VAO: WebGLVertexArrayObjectOES;
