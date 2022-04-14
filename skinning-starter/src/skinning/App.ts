@@ -15,7 +15,9 @@ import {
   sBackVSText,
   sBackFSText,
   quadFSText,
-  quadVSText
+  quadVSText,
+  hlVSText,
+  hlFSText
 } from "./Shaders.js";
 import { Mat4, Vec4, Vec3 } from "../lib/TSM.js";
 import { CLoader } from "./AnimationFileLoader.js";
@@ -23,8 +25,12 @@ import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { Camera } from "../lib/webglutils/Camera.js";
 
 
-const targetTextureWidth = 200
-const targetTextureHeight = 150;
+export const targetTextureWidth = 200
+export const targetTextureHeight = 150;
+export const sideviewX = 850;
+export const view0y = 625;
+export const view1y = 325;
+export const view2y = 50;
 export class SkinningAnimation extends CanvasAnimation {
   private gui: GUI;
   private millis: number;
@@ -47,6 +53,8 @@ export class SkinningAnimation extends CanvasAnimation {
 
   private quadRenderPass: RenderPass;
 
+  private highlightRenderPass: RenderPass;
+
   /* Global Rendering Info */
   private lightPosition: Vec4;
   private backgroundColor: Vec4;
@@ -62,6 +70,10 @@ export class SkinningAnimation extends CanvasAnimation {
   public view0: WebGLTexture;
   public view1: WebGLTexture;
   public view2: WebGLTexture;
+
+  public view0Index: number;
+  public view1Index: number;
+  public view2Index: number;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -93,9 +105,13 @@ export class SkinningAnimation extends CanvasAnimation {
     // Status bar
     this.sBackRenderPass = new RenderPass(this.extVAO, gl, sBackVSText, sBackFSText);
     this.quadRenderPass = new RenderPass(this.extVAO, gl, quadVSText, quadFSText);
+    this.highlightRenderPass = new RenderPass(this.extVAO, gl, hlVSText, hlFSText);
     
     // TODO
     // Other initialization, for instance, for the bone highlighting
+    this.view0Index = -1;
+    this.view1Index = -1;
+    this.view2Index = -1;
     
     this.initGui();
 
@@ -162,6 +178,12 @@ export class SkinningAnimation extends CanvasAnimation {
       2 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, verts);
     this.quadRenderPass.setDrawData(this.ctx.TRIANGLES, 6, this.ctx.UNSIGNED_INT, 0);
     this.quadRenderPass.setup();
+
+    this.highlightRenderPass.setIndexBufferData(new Uint32Array([1, 0, 2, 2, 0, 3]))
+    this.highlightRenderPass.addAttribute("vertPosition", 2, this.ctx.FLOAT, false,
+      2 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, verts);
+    this.highlightRenderPass.setDrawData(this.ctx.TRIANGLES, 6, this.ctx.UNSIGNED_INT, 0);
+    this.highlightRenderPass.setup();
     }
 
   public initScene(): void {
@@ -383,8 +405,12 @@ export class SkinningAnimation extends CanvasAnimation {
       gl.disable(gl.DEPTH_TEST);
       // draw the preview windows
       // this.drawScene(850, 50, targetTextureHeight, targetTextureWidth);
-      
+      // console.log(this.gui.selectedKF)
       if(this.view0) {
+        if(this.gui.selectedKF.has(this.view0Index)){
+          gl.viewport(825, 600, targetTextureWidth + 50, targetTextureHeight + 50);
+          this.highlightRenderPass.draw();
+        }
         gl.viewport(850, 625, targetTextureWidth, targetTextureHeight);
         this.quadRenderPass.addTexture(this.view0);
         gl.getUniformLocation(this.quadRenderPass.shaderProgram, "texture");
@@ -392,6 +418,10 @@ export class SkinningAnimation extends CanvasAnimation {
       }
 
       if(this.view1) {
+        if(this.gui.selectedKF.has(this.view1Index)){
+          gl.viewport(825, 300, targetTextureWidth + 50, targetTextureHeight + 50);
+          this.highlightRenderPass.draw();
+        }
         gl.viewport(850, 325, targetTextureWidth, targetTextureHeight);
         this.quadRenderPass.addTexture(this.view1);
         gl.getUniformLocation(this.quadRenderPass.shaderProgram, "texture");
@@ -399,6 +429,10 @@ export class SkinningAnimation extends CanvasAnimation {
       }
 
       if(this.view2) {
+        if(this.gui.selectedKF.has(this.view2Index)){
+          gl.viewport(825, 25, targetTextureWidth + 50, targetTextureHeight + 50);
+          this.highlightRenderPass.draw();
+        }
         gl.viewport(850, 50, targetTextureWidth, targetTextureHeight);
         this.quadRenderPass.addTexture(this.view2);
         gl.getUniformLocation(this.quadRenderPass.shaderProgram, "texture");

@@ -1,3 +1,20 @@
+export const hlVSText = `
+    precision mediump float;
+
+    attribute vec2 vertPosition;
+
+    void main(void) {
+        gl_Position = vec4(vertPosition, 0.0, 1.0);
+    }
+`;
+
+export const hlFSText = `
+
+    void main(void) {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+`;
+
 export const quadVSText = `
     precision mediump float;
 

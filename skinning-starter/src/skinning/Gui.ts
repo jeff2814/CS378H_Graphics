@@ -1,6 +1,6 @@
  import { Camera } from "../lib/webglutils/Camera.js";
 import { CanvasAnimation } from "../lib/webglutils/CanvasAnimation.js";
-import { SkinningAnimation } from "./App.js";
+import { sideviewX, SkinningAnimation, targetTextureHeight, targetTextureWidth, view0y, view1y, view2y } from "./App.js";
 import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
@@ -67,6 +67,7 @@ export class GUI implements IGUI {
   
   public mode: Mode;
   
+  public selectedKF: Set<number>;
 
   public hoverX: number = 0;
   public hoverY: number = 0;
@@ -90,6 +91,7 @@ export class GUI implements IGUI {
     
     this.num_keyframes = 0;
     this.keyframes = [];
+    this.selectedKF = new Set();
     this.loop = false;
     this.boomerang = false;
 
@@ -103,20 +105,20 @@ export class GUI implements IGUI {
   public getNumKeyFrames(): number {
     // TODO
     // Used in the status bar in the GUI
-    return this.num_keyframes;
+    return this.keyframes.length;
   }
   public getTime(): number { return this.time; }
   
   public getMaxTime(): number { 
     // TODO
     // The animation should stop after the last keyframe
-    if(this.num_keyframes <= 1)
+    if(this.keyframes.length <= 1)
       return 0;
     if(this.loop)
-      return this.num_keyframes;
+      return this.keyframes.length;
     if(this.boomerang)
-      return 2*(this.num_keyframes - 1);
-    return this.num_keyframes - 1;
+      return 2*(this.keyframes.length - 1);
+    return this.keyframes.length - 1;
   }
 
   /**
@@ -130,7 +132,7 @@ export class GUI implements IGUI {
     this.selected_bone = null;
     this.hovered_bone = null;
 
-    this.num_keyframes = 0;
+    this.keyframes.length = 0;
     this.keyframes = [];
     this.loop = false;
     this.boomerang = false;
@@ -184,7 +186,7 @@ export class GUI implements IGUI {
         if(this.loop || this.boomerang) //loop logic
           return;
         this.mode = Mode.edit;
-        var final = this.keyframes[this.num_keyframes - 1];
+        var final = this.keyframes[this.keyframes.length - 1];
         var meshes = this.animation.getScene().meshes;
         for(let m = 0; m < meshes.length; m++)
         {
@@ -361,7 +363,7 @@ export class GUI implements IGUI {
       return;
     var cur_index = ceil_t - 1;
     var next_index = ceil_t;
-    if(ceil_t > this.num_keyframes - 1)
+    if(ceil_t > this.keyframes.length - 1)
     {
       if(this.loop)
         next_index = 0;
@@ -444,6 +446,10 @@ export class GUI implements IGUI {
 
   }
 
+
+  private checkBounds(mex, mey, leftx, lefty){
+    return mex > leftx && 800 - mey > lefty && mex < (leftx + targetTextureWidth) && 800 - mey < (lefty + targetTextureHeight);
+  }
   /**
    * Callback function for the start of a drag event.
    * @param mouse
@@ -453,6 +459,34 @@ export class GUI implements IGUI {
     {
       console.log("On Side Panel, X: " + mouse.offsetX + " Y: " + mouse.offsetY);
       //TODO: CHECK IF I AM CLICKING A KEYFRAME?
+      if(this.checkBounds(mouse.offsetX, mouse.offsetY, sideviewX, view0y)){
+        console.log(this.selectedKF)
+        if(this.animation.view0Index > -1){
+          if(this.selectedKF.has(this.animation.view0Index)){
+            this.selectedKF.delete(this.animation.view0Index);
+          }else{
+            this.selectedKF.add(this.animation.view0Index);
+          }
+        }
+      }
+      else if(this.checkBounds(mouse.offsetX, mouse.offsetY, sideviewX, view1y)){
+        if(this.animation.view1Index > -1){
+          if(this.selectedKF.has(this.animation.view1Index)){
+            this.selectedKF.delete(this.animation.view1Index);
+          }else{
+            this.selectedKF.add(this.animation.view1Index);
+          }
+        }
+      }
+      else if(this.checkBounds(mouse.offsetX, mouse.offsetY, sideviewX, view2y)){
+        if(this.animation.view2Index > -1){
+          if(this.selectedKF.has(this.animation.view2Index)){
+            this.selectedKF.delete(this.animation.view2Index);
+          }else{
+            this.selectedKF.add(this.animation.view2Index);
+          }
+        }
+      }
     }
 
     if (mouse.offsetY > 600) {
@@ -750,12 +784,15 @@ export class GUI implements IGUI {
         if (this.mode === Mode.edit) {
             // TODO
             // Add keyframe
-            this.num_keyframes++;
+            // this.keyframes.length++;
             var temp = new KeyFrame(this.animation)
             this.keyframes.push(temp);
             this.animation.view2 = this.animation.view1;
+            this.animation.view2Index = this.animation.view1Index;
             this.animation.view1 = this.animation.view0;
+            this.animation.view1Index = this.animation.view0Index;
             this.animation.view0 = temp.texture;
+            this.animation.view0Index = this.keyframes.length - 1;
 
             // for(var ki = 0; ki < this.keyframes.length; ki++)
             // {
@@ -801,15 +838,45 @@ export class GUI implements IGUI {
         break;
       }
       case "Delete": {
-        console.log("Delete Select Frame:")
+        if (this.selectedKF.has(this.animation.view0Index)){
+          this.animation.view0 = null;
+          this.animation.view0Index = -1;
+        }
+        if (this.selectedKF.has(this.animation.view1Index)){
+          this.animation.view1 = null;
+          this.animation.view1Index = -1;
+        }
+        if (this.selectedKF.has(this.animation.view2Index)){
+          this.animation.view2 = null;
+          this.animation.view2Index = -1;
+        }
+        
+        this.keyframes = this.keyframes.filter((val, ind) => {
+          return !this.selectedKF.has(ind)
+        })
+        this.selectedKF = new Set<number>();
         break;
       }
       case "KeyU": {
-        console.log("Update Selected Frame to Screen")
+        this.selectedKF.forEach(kf => {
+          this.keyframes[kf] = new KeyFrame(this.animation);
+          if(kf === this.animation.view0Index) {
+            this.animation.view0 = this.keyframes[kf].texture;
+          }
+          if(kf === this.animation.view1Index) {
+            this.animation.view1 = this.keyframes[kf].texture;
+          }
+          if(kf === this.animation.view2Index) {
+            this.animation.view2 = this.keyframes[kf].texture;
+          }
+        })
         break;
       }
       case "Equal": {
-        console.log("Set Screen to Selected Frame")
+        if(this.selectedKF.size > 0){
+          var ind = this.selectedKF.values().next().value;
+          this.animation.getScene().meshes = this.keyframes[ind].meshes
+        }
         break;
       }
       default: {
